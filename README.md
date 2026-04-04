@@ -436,14 +436,16 @@ Configure in Claude Code's MCP settings to give your assistant persistent memory
 
 ## The Stack
 
-| Tool | Purpose |
-|------|---------|
-| [LadybugDB](https://ladybugdb.com) 0.15.3 | Graph database + vector storage + native algorithms (Louvain, PageRank, WCC) |
-| [PyArrow](https://arrow.apache.org) | Bulk Parquet ingestion (25x faster) |
-| [spaCy](https://spacy.io) | Named entity recognition (Phase 2) |
-| [NetworkX](https://networkx.org) | Betweenness centrality, bridge detection, persistent homology |
-| [Ollama](https://ollama.com) | Local AI: embeddings (nomic-embed-text) + extraction (llama3.2) |
-| [MCP](https://modelcontextprotocol.io) | AI assistant integration (optional) |
+| Tool | Repo | Purpose |
+|------|------|---------|
+| [LadybugDB](https://ladybugdb.com) 0.15.3 | [GitHub](https://github.com/LadybugDB/ladybug) | Graph database + vector storage + native algorithms (Louvain, PageRank, WCC) |
+| [PyArrow](https://arrow.apache.org) | [GitHub](https://github.com/apache/arrow) | Bulk Parquet ingestion (25x faster) |
+| [spaCy](https://spacy.io) | [GitHub](https://github.com/explosion/spaCy) | Named entity recognition (Phase 2) |
+| [NetworkX](https://networkx.org) | [GitHub](https://github.com/networkx/networkx) | Betweenness centrality, bridge detection, persistent homology |
+| [Ollama](https://ollama.com) | [GitHub](https://github.com/ollama/ollama) | Local AI: embeddings (nomic-embed-text) + extraction (llama3.2) |
+| [vis-network](https://visjs.github.io/vis-network/) | [GitHub](https://github.com/visjs/vis-network) | Interactive graph visualization in the dashboard |
+| [Ripser](https://ripser.scikit-tda.org) | [GitHub](https://github.com/scikit-tda/ripser.py) | Persistent homology for topological gap detection (optional) |
+| [MCP](https://modelcontextprotocol.io) | [GitHub](https://github.com/modelcontextprotocol) | AI assistant integration (optional) |
 
 ### Why LadybugDB?
 
@@ -456,6 +458,10 @@ Configure in Claude Code's MCP settings to give your assistant persistent memory
 ---
 
 ## Architecture
+
+<img src="static/graph-analysis-architecture.png" alt="The Architecture of Graph Insights: LadybugDB + NetworkX" width="100%">
+
+*Three-layer architecture: LadybugDB foundation (schema, columnar storage, vectorized execution) → NetworkX analysis bridge (betweenness, communities, shortest paths, gap detection) → Insight layer (hairball → skeleton filtering, interactive exploration, structural gap discovery).*
 
 ```
 Obsidian Vault (*.md)
