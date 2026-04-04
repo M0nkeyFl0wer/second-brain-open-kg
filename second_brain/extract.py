@@ -81,30 +81,23 @@ class Extractor:
                 label, "event", f"Date reference: {label}",
                 0.9, source_url, "deterministic", now))
 
-        # Dollar amounts → transactions
-        money_pattern = r'\$[\d,]+(?:\.\d{2})?'
-        for match in re.finditer(money_pattern, text):
-            label = match.group(0)
-            entities.append(self._make_entity(
-                label, "transaction", f"Financial amount: {label}",
-                0.85, source_url, "deterministic", now))
-
         return entities
 
     def _phase2_spacy(self, text: str, source_url: str, now: int) -> list:
-        """Extract named entities using spaCy NER."""
+        """Extract named entities using spaCy NER.
+        Maps spaCy NER labels to our PKG ontology types."""
         doc = self.nlp(text[:100000])
         entities = []
 
+        # Map spaCy labels → PKG ontology types
         spacy_to_ontology = {
             "PERSON": "person",
-            "ORG": "organization",
-            "GPE": "location",
-            "LOC": "location",
-            "FAC": "location",
-            "MONEY": "transaction",
-            "DATE": "event",
-            "EVENT": "event",
+            "ORG": "source",     # Organizations as knowledge sources
+            "GPE": "place",
+            "LOC": "place",
+            "FAC": "place",
+            "WORK_OF_ART": "source",  # Books, articles, etc.
+            "EVENT": "concept",  # Events as concepts in PKG
         }
 
         seen_labels = set()
@@ -135,7 +128,8 @@ class Extractor:
         edge_guidance = self.ontology.get_edge_prompt_context()
         existing_labels = [e["label"] for e in existing_entities[:30]]
 
-        prompt = f"""Analyze this text and extract entities and relationships.
+        prompt = f"""Analyze this personal note and extract concepts, people, sources,
+insights, questions, and relationships between them. Focus on ideas and their connections.
 
 {type_guidance}
 
@@ -154,7 +148,7 @@ Format:
   ]
 }}
 
-Text to analyze:
+Note to analyze:
 {text[:4000]}"""
 
         try:
