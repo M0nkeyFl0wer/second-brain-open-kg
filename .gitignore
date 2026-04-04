@@ -1,7 +1,7 @@
-# Data (never commit investigation data to a public repo)
+# Data (never commit personal notes or graph data)
 data/
-ingest/
-briefings/
+/ingest/
+/reflections/
 *.db
 *.kuzu/
 *.lbug/
