@@ -2,6 +2,17 @@
 
 *In the era of LLM agents, share the idea — not the code. Give this file to your agent and it builds the tool for you.*
 
+<img src="static/social-card.png" alt="The Topological Second Brain: A Full-Stack AI Memory Architecture" width="100%">
+
+### Built With
+
+<a href="https://github.com/LadybugDB/ladybug"><img src="https://ladybugdb.com/img/logo.svg" alt="LadybugDB" height="40"></a>&nbsp;&nbsp;
+<a href="https://github.com/networkx/networkx"><img src="https://networkx.org/documentation/stable/_static/networkx_logo.svg" alt="NetworkX" height="40"></a>&nbsp;&nbsp;
+<a href="https://github.com/ollama/ollama"><img src="https://ollama.com/public/ollama.png" alt="Ollama" height="40"></a>&nbsp;&nbsp;
+<a href="https://github.com/explosion/spaCy"><img src="https://img.shields.io/badge/spaCy-NLP-09a3d5?style=flat-square" alt="spaCy" height="22"></a>&nbsp;&nbsp;
+<a href="https://github.com/visjs/vis-network"><img src="https://img.shields.io/badge/vis--network-graph_viz-orange?style=flat-square" alt="vis-network" height="22"></a>&nbsp;&nbsp;
+<a href="https://github.com/scikit-tda/ripser.py"><img src="https://img.shields.io/badge/Ripser-topology-purple?style=flat-square" alt="Ripser" height="22"></a>
+
 ---
 
 ## The Idea
@@ -23,17 +34,25 @@ You have a pile of notes, reading highlights, journal entries, project ideas, an
 
 ## Why This Matters
 
-From [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) (Belova et al., Princeton, 2026):
+<img src="static/verifiable-ai-infographic.png" alt="From Probability to Proof: Engineering Verifiable AI with Ontologies and Knowledge Graphs" width="100%">
+
+*From probability to proof: ontology-driven design, graph-based reasoning transparency, and deterministic verification replace black-box similarity search.*
+
+From [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) (Belova, Kansal, Liang, Xiao & Jha — Princeton, 2026):
 
 > "Rather than a single generalist LLM monolith, we envision a future built on specialized small language models" grounded in "knowledge graphs, ontologies, and formal logic."
 
-Current AI centralizes intelligence in cloud data centers. This pattern distributes it: your knowledge graph runs on your laptop, your LLM runs locally via Ollama, your reasoning is verified by graph structure — not by trusting a confidence score.
+Current AI centralizes intelligence in cloud data centers. This pattern distributes it: your knowledge graph runs on your laptop, your LLM runs locally via [Ollama](https://ollama.com), your reasoning is verified by graph structure — not by trusting a confidence score.
 
 The graph is the scaffold. The topology is the verification. The LLM is just the extraction engine.
 
 ---
 
 ## The Pattern
+
+<img src="static/graph-analysis-architecture.png" alt="The Architecture of Graph Insights: LadybugDB + NetworkX" width="100%">
+
+*Three layers: [LadybugDB](https://github.com/LadybugDB/ladybug) foundation (schema, columnar storage, vectorized execution) → [NetworkX](https://github.com/networkx/networkx) analysis bridge (betweenness, communities, shortest paths) → Insight layer (hairball→skeleton filtering, interactive exploration, gap discovery).*
 
 ### 1. Ontology — Define what matters to you
 
@@ -127,12 +146,16 @@ The dashboard is how you *see* your thinking. The path animation is how you see 
 
 ## What You Need
 
-- Python 3.10+
-- Ollama (local AI, no API key): nomic-embed-text for embeddings, any small model for extraction
-- An embedded graph database with Cypher + vectors (LadybugDB, KuzuDB)
-- spaCy with en_core_web_sm for NER
-- NetworkX for betweenness, bridges, homology prep
-- A folder of markdown files (Obsidian vault or otherwise)
+| Tool | What it does | Get it |
+|------|-------------|--------|
+| Python 3.10+ | Runtime | [python.org](https://python.org) |
+| [Ollama](https://ollama.com) | Local AI — embeddings + extraction, no API key | [GitHub](https://github.com/ollama/ollama) |
+| [LadybugDB](https://ladybugdb.com) | Embedded graph DB with Cypher + vectors | [GitHub](https://github.com/LadybugDB/ladybug) · `pip install real_ladybug` |
+| [spaCy](https://spacy.io) | Named entity recognition | [GitHub](https://github.com/explosion/spaCy) · `pip install spacy` |
+| [NetworkX](https://networkx.org) | Betweenness, bridges, homology prep | [GitHub](https://github.com/networkx/networkx) · `pip install networkx` |
+| [Ripser](https://ripser.scikit-tda.org) | Persistent homology (optional) | [GitHub](https://github.com/scikit-tda/ripser.py) · `pip install ripser` |
+| [vis-network](https://visjs.github.io/vis-network/) | Interactive graph visualization | [GitHub](https://github.com/visjs/vis-network) · CDN |
+| A folder of markdown files | Your notes — [Obsidian](https://obsidian.md) vault or any .md/.txt/.pdf/.html | — |
 
 ---
 
