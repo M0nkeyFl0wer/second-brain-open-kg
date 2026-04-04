@@ -123,10 +123,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="Search the knowledge graph",
         epilog="Examples:\n"
-               "  %(prog)s -q 'Robert Chen'\n"
-               "  %(prog)s -q 'corruption' --mode semantic\n"
-               "  %(prog)s -q 'financial fraud' --mode hybrid\n"
-               "  %(prog)s --path 'Chen' 'Meridian'\n",
+               "  %(prog)s -q 'spaced repetition'\n"
+               "  %(prog)s -q 'learning techniques' --mode semantic\n"
+               "  %(prog)s -q 'productivity' --mode hybrid\n"
+               "  %(prog)s -q 'meditation' --mode hidden\n"
+               "  %(prog)s --path 'meditation' 'creativity'\n",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--query", "-q", help="Search query")
@@ -134,8 +135,10 @@ def main():
                         help="Find paths between two entities")
     parser.add_argument("--type", "-t", help="Filter by entity type")
     parser.add_argument("--limit", "-l", type=int, default=10, help="Max results")
-    parser.add_argument("--mode", "-m", choices=["keyword", "semantic", "hybrid"],
-                        default="keyword", help="Search mode (default: keyword)")
+    parser.add_argument("--mode", "-m",
+                        choices=["keyword", "semantic", "hybrid", "hidden"],
+                        default="keyword",
+                        help="Search mode: keyword, semantic, hybrid, or hidden (default: keyword)")
     args = parser.parse_args()
 
     if not args.query and not args.path:
@@ -148,6 +151,28 @@ def main():
         print(f"Finding paths: {source} → {target}\n")
         paths = graph.find_path(source, target)
         display_paths(paths)
+        graph.close()
+        return
+
+    if args.mode == "hidden":
+        # Hidden connections: find what's semantically close but not linked
+        from second_brain.embed import embed_text
+        query_emb = embed_text(args.query)
+        # Find the entity closest to the query
+        seeds = graph.vector_search(query_emb, limit=1)
+        if seeds:
+            try:
+                from second_brain.hidden_connections import find_hidden_for_entity
+                results = find_hidden_for_entity(graph, seeds[0]["id"])
+                print(f"Hidden connections for: {seeds[0]['label']}\n")
+                for r in results[:args.limit]:
+                    print(f"  [{r['type']:15}] {r['label']}")
+                    print(f"                    distance: {r['distance']:.3f} | unlinked")
+            except ImportError:
+                print("Hidden connections module not available.")
+                results = []
+        else:
+            print("No entities found matching query.")
         graph.close()
         return
 
