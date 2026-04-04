@@ -41,6 +41,8 @@ This toolkit:
 
 ## Getting Started — 4 Commands
 
+### If you use Obsidian
+
 ```bash
 git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
 cd second-brain-open-kg
@@ -48,7 +50,24 @@ bash setup.sh
 python scripts/ingest_obsidian.py --vault ~/your-obsidian-vault
 ```
 
-That's it. Your knowledge graph is built. Search it:
+Parses your entire vault — frontmatter, `[[wikilinks]]`, `#tags`, and body text. Notes become entities, links become edges, tags become concepts.
+
+### If you don't use Obsidian
+
+Works with any pile of documents. Drop files in the `ingest/` folder and run:
+
+```bash
+git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
+cd second-brain-open-kg
+bash setup.sh
+mkdir ingest
+cp ~/Documents/research/*.pdf ~/Documents/notes/*.txt ~/saved-articles/*.html ingest/
+python scripts/ingest_folder.py
+```
+
+Supports `.txt`, `.md`, `.pdf`, `.html`. PDFs need `pdftotext` (`sudo apt install poppler-utils` on Linux, `brew install poppler` on Mac). No special formatting required — the extraction pipeline handles raw, unstructured text.
+
+### Then search it
 
 ```bash
 python scripts/search_cli.py -q "your topic" --mode hybrid
