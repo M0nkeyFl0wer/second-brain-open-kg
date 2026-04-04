@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Run topology analysis on the knowledge graph and output a report."""
+"""
+Run topology analysis on the personal knowledge graph and output a report.
+
+Analyzes the structure of your captured ideas: how they cluster, where gaps
+exist between idea groups, which concepts bridge different areas of thinking,
+and where beliefs conflict.
+"""
 import json
 import sys
 from datetime import datetime
@@ -26,7 +32,7 @@ def main():
 
     # Print summary
     print("=" * 60)
-    print("TOPOLOGY REPORT")
+    print("KNOWLEDGE GRAPH ANALYSIS")
     print("=" * 60)
     print(f"  Entities:              {report.node_count}")
     print(f"  Edges:                 {report.edge_count}")
@@ -36,9 +42,9 @@ def main():
     print(f"  Communities (Louvain): {report.community_count}")
     print()
 
-    # Gaps
+    # Knowledge gaps — community pairs with sparse cross-connections
     if report.gaps:
-        print(f"STRUCTURAL GAPS: {len(report.gaps)}")
+        print(f"KNOWLEDGE GAPS: {len(report.gaps)}")
         print("-" * 60)
         for gap in report.gaps[:10]:
             ca = gap["community_a"]
@@ -49,15 +55,15 @@ def main():
             print(f"         → {gap['question']}")
             print()
 
-    # Surprising connections
+    # Surprising bridges — high betweenness on low-degree entities
     surprising = [b for b in report.top_betweenness if b.get("surprising")]
     if surprising:
-        print(f"SURPRISING CONNECTIONS: {len(surprising)}")
+        print(f"SURPRISING BRIDGES: {len(surprising)}")
         print("-" * 60)
         for s in surprising[:10]:
             print(f"  {s['label']} ({s['type']})")
             print(f"    Betweenness: {s['betweenness']} | Degree: {s['degree']}")
-            print(f"    → Structurally important despite low frequency")
+            print(f"    → Bridges different areas of your thinking")
             print()
 
     # Contradictions
@@ -70,7 +76,7 @@ def main():
             print(f"  \"{c['claim_b']}\"")
             print()
 
-    # Bridges
+    # Bridges — structurally fragile single-point connections
     if report.bridges:
         print(f"BRIDGES (fragile connections): {len(report.bridges)}")
         print("-" * 60)
@@ -78,7 +84,7 @@ def main():
             print(f"  {b['source_label']} ↔ {b['target_label']}")
         print()
 
-    # Persistent homology (optional)
+    # Persistent homology (optional topological features)
     print("PERSISTENT HOMOLOGY")
     print("-" * 60)
     G = build_networkx_graph(graph)
@@ -107,7 +113,7 @@ def main():
         "isolated": report.isolated_count,
         "communities": report.community_count,
         "gaps": report.gaps[:20],
-        "surprising_connections": surprising[:10],
+        "surprising_bridges": surprising[:10],
         "contradictions": report.contradictions[:10],
         "bridges": len(report.bridges),
         "homology": homology,
