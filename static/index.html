@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Second Brain</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+/* =========================================================================
+   CSS Variables & Reset
+   ========================================================================= */
+:root {
+    --bg-primary: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-card-hover: #1a2747;
+    --bg-input: #0f2035;
+    --text-primary: #e0e0e0;
+    --text-secondary: #8899aa;
+    --text-muted: #556677;
+    --accent: #0f3460;
+    --accent-light: #1a4a80;
+    --accent-bright: #3a7bd5;
+    --border: #1e3a5f;
+    --green: #2ecc71;
+    --yellow: #f1c40f;
+    --red: #e74c3c;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+/* =========================================================================
+   Layout
+   ========================================================================= */
+.app-header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.app-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-bright);
+    white-space: nowrap;
+}
+
+/* =========================================================================
+   Search Bar — always visible in header
+   ========================================================================= */
+.search-container {
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+}
+
+.search-row {
+    display: flex;
+    gap: 8px;
+}
+
+.search-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus { border-color: var(--accent-bright); }
+
+.search-mode {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius) var(--radius);
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 200;
+    box-shadow: var(--shadow);
+}
+
+.search-results.visible { display: block; }
+
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.search-result-item:hover { background: var(--bg-card-hover); }
+.search-result-item:last-child { border-bottom: none; }
+
+/* =========================================================================
+   Tab Navigation
+   ========================================================================= */
+.tab-nav {
+    display: flex;
+    gap: 0;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover { color: var(--text-primary); }
+
+.tab-btn.active {
+    color: var(--accent-bright);
+    border-bottom-color: var(--accent-bright);
+}
+
+.tab-content {
+    display: none;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.tab-content.active { display: block; }
+
+/* =========================================================================
+   Cards
+   ========================================================================= */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+
+.card-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.card-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+/* =========================================================================
+   Health Metrics (ICR, CI, IPR) — colored progress bars
+   ========================================================================= */
+.health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.health-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.health-bar {
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.health-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.health-bar-fill.green { background: var(--green); }
+.health-bar-fill.yellow { background: var(--yellow); }
+.health-bar-fill.red { background: var(--red); }
+
+.health-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* =========================================================================
+   Type Distribution — CSS-only horizontal bar chart
+   ========================================================================= */
+.dist-section { margin-bottom: 24px; }
+
+.dist-section h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dist-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.dist-label {
+    width: 140px;
+    text-align: right;
+    padding-right: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dist-bar-container {
+    flex: 1;
+    height: 20px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.dist-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    min-width: 2px;
+}
+
+.dist-count {
+    width: 50px;
+    text-align: right;
+    padding-left: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* =========================================================================
+   Graph Tab
+   ========================================================================= */
+.graph-layout {
+    display: flex;
+    gap: 0;
+    height: calc(100vh - 120px);
+}
+
+.graph-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.graph-controls select,
+.graph-controls label {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.graph-controls select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+}
+
+.graph-controls label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.graph-controls input[type="checkbox"] {
+    accent-color: var(--accent-bright);
+}
+
+.graph-container {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 400px;
+}
+
+/* =========================================================================
+   Node Sidebar — shows entity details on click
+   ========================================================================= */
+.node-sidebar {
+    width: 320px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    display: none;
+    flex-shrink: 0;
+}
+
+.node-sidebar.visible { display: block; }
+
+.sidebar-close {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.sidebar-close:hover { color: var(--text-primary); }
+
+.sidebar-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    padding-right: 24px;
+}
+
+.sidebar-type {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.sidebar-section {
+    margin-bottom: 16px;
+}
+
+.sidebar-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.neighbor-item {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.neighbor-item:hover { color: var(--accent-bright); }
+
+.neighbor-edge {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* =========================================================================
+   Type Badge — reused across tabs
+   ========================================================================= */
+.type-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.type-badge.concept   { background: #1a3a6b; color: #5b9bd5; }
+.type-badge.person    { background: #1a4a2e; color: #5bd55b; }
+.type-badge.source    { background: #3a1a5b; color: #b05bd5; }
+.type-badge.insight   { background: #5b3a1a; color: #d5955b; }
+.type-badge.question  { background: #5b1a1a; color: #d55b5b; }
+.type-badge.practice  { background: #1a4a4a; color: #5bd5d5; }
+.type-badge.project   { background: #4a4a1a; color: #d5d55b; }
+.type-badge.place     { background: #2a2a2a; color: #999999; }
+
+/* =========================================================================
+   Hidden Connections Tab
+   ========================================================================= */
+.hidden-list { display: flex; flex-direction: column; gap: 8px; }
+
+.hidden-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.hidden-row:hover { background: var(--bg-card-hover); }
+
+.hidden-entity {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.hidden-entity-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.hidden-arrow {
+    color: var(--text-muted);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.hidden-distance {
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.hidden-distance-bar {
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+
+.hidden-distance-fill {
+    height: 100%;
+    background: var(--accent-bright);
+    border-radius: 3px;
+}
+
+.hidden-distance-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* =========================================================================
+   Communities Tab
+   ========================================================================= */
+.community-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.community-card {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.community-card:hover { background: var(--bg-card-hover); }
+
+.community-size {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-bright);
+}
+
+.community-size-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.community-summary {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 8px 0;
+    line-height: 1.4;
+}
+
+.community-entities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.community-entity {
+    font-size: 12px;
+    background: var(--bg-input);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+}
+
+/* =========================================================================
+   Utility
+   ========================================================================= */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.error-msg {
+    color: var(--red);
+    padding: 12px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: var(--radius);
+    font-size: 13px;
+}
+
+.timestamp {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 16px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     Header: title, search bar, tab navigation
+     ===================================================================== -->
+<header class="app-header">
+    <div class="app-title">Open Second Brain</div>
+
+    <!-- Search: always visible. Queries /api/search with mode dropdown. -->
+    <div class="search-container">
+        <div class="search-row">
+            <input type="text" class="search-input" id="searchInput"
+                   placeholder="Search your knowledge graph..." autocomplete="off">
+            <select class="search-mode" id="searchMode">
+                <option value="hybrid">Hybrid</option>
+                <option value="keyword">Keyword</option>
+                <option value="semantic">Semantic</option>
+            </select>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Tab navigation -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="status">Status</button>
+        <button class="tab-btn" data-tab="graph">Graph</button>
+        <button class="tab-btn" data-tab="hidden">Hidden</button>
+        <button class="tab-btn" data-tab="communities">Communities</button>
+    </nav>
+</header>
+
+<!-- =====================================================================
+     Tab 1: Status
+     Shows health metrics, counts, type distributions, last ingestion.
+     Fetches: GET /api/status, GET /api/types
+     ===================================================================== -->
+<div class="tab-content active" id="tab-status">
+    <div class="health-grid" id="healthGrid"></div>
+    <div class="card-grid" id="countGrid"></div>
+    <div class="dist-section" id="typeDistSection">
+        <h3>Entity Type Distribution</h3>
+        <div id="typeDist"></div>
+    </div>
+    <div class="dist-section" id="edgeDistSection">
+        <h3>Edge Type Distribution</h3>
+        <div id="edgeDist"></div>
+    </div>
+    <div class="timestamp" id="lastIngestion"></div>
+</div>
+
+<!-- =====================================================================
+     Tab 2: Graph
+     Interactive vis-network visualization with filtering and expansion.
+     Fetches: GET /api/graph, GET /api/graph/{id}
+     ===================================================================== -->
+<div class="tab-content" id="tab-graph">
+    <div class="graph-controls">
+        <select id="typeFilter">
+            <option value="">All Types</option>
+            <option value="concept">Concept</option>
+            <option value="person">Person</option>
+            <option value="source">Source</option>
+            <option value="insight">Insight</option>
+            <option value="question">Question</option>
+            <option value="practice">Practice</option>
+            <option value="project">Project</option>
+            <option value="place">Place</option>
+        </select>
+        <label>
+            <input type="checkbox" id="skeletonMode"> Skeleton mode
+        </label>
+        <span class="path-controls">
+            <input type="text" id="pathSource" placeholder="From..." style="width:120px;padding:4px 8px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:4px;">
+            <span style="color:var(--text-muted);">→</span>
+            <input type="text" id="pathTarget" placeholder="To..." style="width:120px;padding:4px 8px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:4px;">
+            <button onclick="findAndAnimatePath()" style="padding:4px 12px;background:var(--accent);color:white;border:none;border-radius:4px;cursor:pointer;">Find Path</button>
+        </span>
+        <span style="font-size: 12px; color: var(--text-muted);">
+            Double-click to expand &middot; Find Path to visualize multi-hop reasoning
+        </span>
+    </div>
+    <div class="graph-layout">
+        <div class="graph-container" id="graphContainer"></div>
+        <div class="node-sidebar" id="nodeSidebar">
+            <button class="sidebar-close" id="sidebarClose">&times;</button>
+            <div id="sidebarContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     Tab 3: Hidden Connections
+     Pairs of entities that are semantically close but not linked.
+     Fetches: GET /api/hidden
+     ===================================================================== -->
+<div class="tab-content" id="tab-hidden">
+    <div style="margin-bottom: 16px;">
+        <h2 style="font-size: 18px; font-weight: 600;">Hidden Connections</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+            Entity pairs that are semantically similar but not yet linked in the graph.
+            Sorted by distance (closest first).
+        </p>
+    </div>
+    <div class="hidden-list" id="hiddenList"></div>
+</div>
+
+<!-- =====================================================================
+     Tab 4: Communities
+     Community summaries with member entities.
+     Fetches: GET /api/communities
+     ===================================================================== -->
+<div class="tab-content" id="tab-communities">
+    <div style="margin-bottom: 16px;">
+        <h2 style="font-size: 18px; font-weight: 600;">Knowledge Communities</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+            Clusters of related entities detected via community analysis.
+            Click a community to filter the graph to its members.
+        </p>
+    </div>
+    <div class="community-grid" id="communityGrid"></div>
+</div>
+
+
+<script>
+// =========================================================================
+// DATA FLOW & INTERACTION MODEL
+// =========================================================================
+//
+// This dashboard is a read-only visualization layer for the Open Second Brain
+// knowledge graph API. It maintains no local state beyond what's needed for
+// the current view. Here's how data flows:
+//
+// 1. STATUS TAB
+//    On load (and when tab is selected), fetches /api/status for health
+//    metrics (ICR, CI, IPR) and counts, and /api/types for entity/edge
+//    type distributions. Renders health bars, count cards, and CSS bar charts.
+//
+// 2. GRAPH TAB
+//    On first visit, fetches /api/graph (optionally filtered by type and
+//    skeleton mode) and builds a vis-network DataSet. The vis-network library
+//    handles layout, zoom, pan, and physics. User interactions:
+//    - Single click: opens sidebar with entity details + neighbors
+//    - Double click: fetches /api/graph/{id} and adds neighbors to the
+//      existing DataSet (expand-in-place, no full reload)
+//    - Type filter: refetches /api/graph?type=X
+//    - Skeleton toggle: refetches /api/graph?skeleton=true
+//
+// 3. HIDDEN CONNECTIONS TAB
+//    Fetches /api/hidden on first visit. Renders a sorted list of entity
+//    pairs with distance bars. Clicking a pair switches to the Graph tab
+//    and highlights both nodes.
+//
+// 4. COMMUNITIES TAB
+//    Fetches /api/communities on first visit. Renders community cards.
+//    Clicking a card switches to the Graph tab and filters to only show
+//    entities from that community.
+//
+// 5. SEARCH
+//    On input (debounced), fetches /api/search?q=X&mode=Y. Results appear
+//    as a dropdown. Clicking a result switches to the Graph tab and focuses
+//    the network on that node.
+//
+// All API calls use fetch() with error handling. If the API is unreachable,
+// the UI shows an error message rather than crashing silently.
+// =========================================================================
+
+
+// =========================================================================
+// Color Map — maps entity_type to a hex color for vis-network groups
+// and type badges throughout the UI.
+// =========================================================================
+const TYPE_COLORS = {
+    concept:  '#3a7bd5',
+    person:   '#2ecc71',
+    source:   '#9b59b6',
+    insight:  '#e67e22',
+    question: '#e74c3c',
+    practice: '#1abc9c',
+    project:  '#f1c40f',
+    place:    '#95a5a6',
+};
+
+// Fallback color for unknown types
+const DEFAULT_COLOR = '#5b6a7a';
+
+
+// =========================================================================
+// State — shared across tabs
+// =========================================================================
+
+// vis-network DataSets are mutable collections. Keeping them at module scope
+// lets multiple interactions (click-to-expand, search-to-focus, community
+// filter) all operate on the same live graph without full reloads.
+let visNodes = null;       // vis.DataSet of nodes currently displayed
+let visEdges = null;       // vis.DataSet of edges currently displayed
+let network = null;        // vis.Network instance
+let graphLoaded = false;   // prevents redundant initial loads
+let statusLoaded = false;  // prevents redundant status fetches
+let hiddenLoaded = false;  // prevents redundant hidden-connections fetches
+let communitiesLoaded = false;
+
+// Track which tabs have been initialized so we fetch data lazily
+// (only when the user first navigates to a tab)
+
+
+// =========================================================================
+// Utility: API fetch with error handling
+// =========================================================================
+
+/**
+ * Fetch JSON from an API endpoint. Returns the parsed response or throws.
+ * All API calls in this dashboard go through this function so that error
+ * handling and base URL logic live in one place.
+ */
+async function apiFetch(path) {
+    const resp = await fetch(path);
+    if (!resp.ok) {
+        throw new Error(`API error: ${resp.status} ${resp.statusText}`);
+    }
+    return resp.json();
+}
+
+
+// =========================================================================
+// Tab Navigation
+// =========================================================================
+
+/**
+ * Tab switching: clicking a tab button hides all tab-content divs and
+ * shows the one matching the button's data-tab attribute. Also triggers
+ * lazy data loading for tabs that haven't been fetched yet.
+ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Update button active state
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Show matching tab content, hide others
+        const tabId = btn.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+
+        // Lazy-load tab data on first visit
+        if (tabId === 'status' && !statusLoaded) loadStatus();
+        if (tabId === 'graph' && !graphLoaded) loadGraph();
+        if (tabId === 'hidden' && !hiddenLoaded) loadHidden();
+        if (tabId === 'communities' && !communitiesLoaded) loadCommunities();
+
+        // Resize vis-network when switching to graph tab (the container
+        // may have been hidden, causing vis to calculate wrong dimensions)
+        if (tabId === 'graph' && network) {
+            setTimeout(() => network.fit(), 100);
+        }
+    });
+});
+
+
+// =========================================================================
+// Tab 1: STATUS
+// =========================================================================
+
+/**
+ * Loads the Status tab data from two endpoints:
+ * - GET /api/status: returns health metrics and counts
+ * - GET /api/types: returns entity and edge type distributions
+ *
+ * Expected /api/status response shape:
+ * {
+ *   icr: 0.85,          // Index Coverage Ratio (0-1)
+ *   ci: 0.72,           // Connectivity Index (0-1)
+ *   ipr: 0.91,          // Integrity/Precision Ratio (0-1)
+ *   entity_count: 142,
+ *   edge_count: 387,
+ *   document_count: 23,
+ *   community_count: 8,
+ *   hidden_count: 15,
+ *   last_ingestion: "2025-01-15T10:30:00Z"
+ * }
+ *
+ * Expected /api/types response shape:
+ * {
+ *   entity_types: [{type: "concept", count: 45}, ...],
+ *   edge_types: [{type: "RELATES_TO", count: 120}, ...]
+ * }
+ */
+async function loadStatus() {
+    const healthGrid = document.getElementById('healthGrid');
+    const countGrid = document.getElementById('countGrid');
+
+    healthGrid.innerHTML = '<div class="loading">Loading status...</div>';
+
+    try {
+        // Fetch both endpoints in parallel for faster load
+        const [status, types] = await Promise.all([
+            apiFetch('/api/status'),
+            apiFetch('/api/types'),
+        ]);
+
+        statusLoaded = true;
+
+        // --- Health metric cards with colored progress bars ---
+        // Each metric is a ratio (0-1). Color thresholds:
+        //   >= 0.7 = green, >= 0.4 = yellow, < 0.4 = red
+        const healthMetrics = [
+            {
+                key: 'icr', label: 'Index Coverage Ratio',
+                desc: 'Fraction of entities with embeddings',
+                value: status.icr || 0
+            },
+            {
+                key: 'ci', label: 'Connectivity Index',
+                desc: 'Average edges per entity',
+                value: status.ci || 0
+            },
+            {
+                key: 'ipr', label: 'Integrity / Precision Ratio',
+                desc: 'Confidence-weighted edge quality',
+                value: status.ipr || 0
+            },
+        ];
+
+        healthGrid.innerHTML = healthMetrics.map(m => {
+            const pct = Math.round(m.value * 100);
+            const colorClass = m.value >= 0.7 ? 'green' : m.value >= 0.4 ? 'yellow' : 'red';
+            return `
+                <div class="card">
+                    <div class="health-label">
+                        <span>${m.label}</span>
+                        <span>${pct}%</span>
+                    </div>
+                    <div class="health-bar">
+                        <div class="health-bar-fill ${colorClass}" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="health-desc">${m.desc}</div>
+                </div>
+            `;
+        }).join('');
+
+        // --- Count cards ---
+        const counts = [
+            { label: 'Entities', value: status.entity_count || 0 },
+            { label: 'Edges', value: status.edge_count || 0 },
+            { label: 'Documents', value: status.document_count || 0 },
+            { label: 'Communities', value: status.community_count || 0 },
+            { label: 'Hidden Connections', value: status.hidden_count || 0 },
+        ];
+
+        countGrid.innerHTML = counts.map(c => `
+            <div class="card">
+                <div class="card-title">${c.label}</div>
+                <div class="card-value">${c.value.toLocaleString()}</div>
+            </div>
+        `).join('');
+
+        // --- Entity type distribution (CSS-only horizontal bar chart) ---
+        // Find the max count to scale bars proportionally
+        renderDistribution('typeDist', types.entity_types || []);
+        renderDistribution('edgeDist', types.edge_types || []);
+
+        // --- Last ingestion timestamp ---
+        if (status.last_ingestion) {
+            const ts = new Date(status.last_ingestion);
+            document.getElementById('lastIngestion').textContent =
+                `Last ingestion: ${ts.toLocaleString()}`;
+        }
+
+    } catch (err) {
+        healthGrid.innerHTML = `<div class="error-msg">Failed to load status: ${err.message}</div>`;
+    }
+}
+
+/**
+ * Renders a CSS-only horizontal bar chart from an array of {type, count} objects.
+ * Bars are scaled relative to the maximum count so the largest bar fills 100%.
+ */
+function renderDistribution(containerId, items) {
+    const container = document.getElementById(containerId);
+    if (!items || items.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">No data</div>';
+        return;
+    }
+
+    const maxCount = Math.max(...items.map(i => i.count));
+
+    container.innerHTML = items.map(item => {
+        const pct = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+        const color = TYPE_COLORS[item.type] || DEFAULT_COLOR;
+        return `
+            <div class="dist-row">
+                <div class="dist-label" title="${item.type}">${item.type}</div>
+                <div class="dist-bar-container">
+                    <div class="dist-bar" style="width: ${pct}%; background: ${color};"></div>
+                </div>
+                <div class="dist-count">${item.count}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+// =========================================================================
+// Tab 2: GRAPH
+// =========================================================================
+
+/**
+ * vis-network configuration options.
+ * Groups define per-type colors so nodes are visually distinguishable.
+ * Physics uses barnesHut for reasonable layout with stabilization.
+ */
+function getVisOptions() {
+    // Build group definitions from our color map
+    const groups = {};
+    for (const [type, color] of Object.entries(TYPE_COLORS)) {
+        groups[type] = {
+            color: { background: color, border: color, highlight: { background: color, border: '#fff' } },
+            font: { color: '#e0e0e0' },
+        };
+    }
+
+    return {
+        groups: groups,
+        nodes: {
+            shape: 'dot',
+            font: { color: '#e0e0e0', size: 12 },
+            borderWidth: 1,
+            shadow: { enabled: true, size: 4, color: 'rgba(0,0,0,0.3)' },
+        },
+        edges: {
+            color: { color: '#334455', highlight: '#5b9bd5', hover: '#5b9bd5' },
+            font: { color: '#556677', size: 10, strokeWidth: 0 },
+            arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+            smooth: { type: 'continuous' },
+        },
+        physics: {
+            solver: 'barnesHut',
+            barnesHut: {
+                gravitationalConstant: -4000,
+                centralGravity: 0.3,
+                springLength: 120,
+                springConstant: 0.04,
+                damping: 0.09,
+            },
+            stabilization: { iterations: 150 },
+        },
+        interaction: {
+            hover: true,
+            tooltipDelay: 200,
+            multiselect: false,
+        },
+    };
+}
+
+/**
+ * Fetches the graph from the API and initializes the vis-network.
+ *
+ * GET /api/graph accepts optional query params:
+ *   ?type=concept    — filter nodes to a specific entity_type
+ *   ?skeleton=true   — return a reduced-edge skeleton for readability
+ *
+ * Expected response shape (matches topology.export_skeleton_json):
+ * {
+ *   nodes: [{id, label, type, degree}, ...],
+ *   edges: [{source, target, type, weight}, ...],
+ *   original_edges: 387,
+ *   skeleton_edges: 180,
+ *   reduction: 0.53
+ * }
+ */
+async function loadGraph() {
+    const container = document.getElementById('graphContainer');
+    container.innerHTML = '<div class="loading" style="padding-top: 200px;">Loading graph...</div>';
+
+    try {
+        const params = buildGraphParams();
+        const data = await apiFetch('/api/graph' + params);
+
+        graphLoaded = true;
+
+        // Clear the loading message (vis-network will fill the container)
+        container.innerHTML = '';
+
+        // Build vis DataSets from API response.
+        // Node size is proportional to degree (if available), clamped to a
+        // reasonable range so low-degree nodes are still visible and
+        // high-degree hubs don't dominate the layout.
+        visNodes = new vis.DataSet(data.nodes.map(n => ({
+            id: n.id,
+            label: n.label,
+            group: n.type,
+            title: `[${n.type}] ${n.label}`,
+            size: n.degree ? Math.max(8, Math.min(40, 8 + n.degree * 2)) : 12,
+        })));
+
+        visEdges = new vis.DataSet(data.edges.map((e, i) => ({
+            id: 'e' + i,           // vis requires unique edge IDs
+            from: e.source,
+            to: e.target,
+            label: e.type || '',
+            title: e.type || '',
+        })));
+
+        // Initialize the vis-network
+        network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, getVisOptions());
+
+        // --- Single click: show entity details in sidebar ---
+        network.on('click', async (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                await showNodeSidebar(nodeId);
+            } else {
+                // Clicked on empty space — hide sidebar
+                closeSidebar();
+            }
+        });
+
+        // --- Double click: expand node (fetch and add neighbors) ---
+        // This is the key "progressive exploration" interaction. Instead of
+        // loading the entire graph at once, users can explore outward from
+        // interesting nodes, building up their view incrementally.
+        network.on('doubleClick', async (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                await expandNode(nodeId);
+            }
+        });
+
+    } catch (err) {
+        container.innerHTML = `<div class="error-msg" style="margin: 40px;">
+            Failed to load graph: ${err.message}<br>
+            <span style="font-size: 12px; color: var(--text-muted);">
+                Make sure the API server is running.
+            </span>
+        </div>`;
+    }
+}
+
+/**
+ * Builds query string from current filter/skeleton state.
+ * Called by loadGraph and by the filter/skeleton change handlers.
+ */
+function buildGraphParams() {
+    const type = document.getElementById('typeFilter').value;
+    const skeleton = document.getElementById('skeletonMode').checked;
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    if (skeleton) params.set('skeleton', 'true');
+    const str = params.toString();
+    return str ? '?' + str : '';
+}
+
+/**
+ * Expand a node: fetch its neighbors from /api/graph/{id} and add any
+ * new nodes/edges to the existing vis DataSets. This preserves the
+ * user's existing layout and exploration state.
+ *
+ * Expected /api/graph/{id} response:
+ * {
+ *   id: "node-123",
+ *   label: "Systems Thinking",
+ *   type: "concept",
+ *   description: "...",
+ *   neighbors: [
+ *     {id, label, type, edge_type, direction},
+ *     ...
+ *   ]
+ * }
+ */
+async function expandNode(nodeId) {
+    try {
+        const data = await apiFetch(`/api/graph/${nodeId}`);
+
+        if (!data.neighbors || data.neighbors.length === 0) return;
+
+        // Add each neighbor that isn't already in the dataset.
+        // vis.DataSet.add() throws if the id already exists, so we check first.
+        const newNodes = [];
+        const newEdges = [];
+
+        data.neighbors.forEach(n => {
+            if (!visNodes.get(n.id)) {
+                newNodes.push({
+                    id: n.id,
+                    label: n.label,
+                    group: n.type,
+                    title: `[${n.type}] ${n.label}`,
+                    size: 12,
+                });
+            }
+
+            // Add edge connecting the expanded node to this neighbor.
+            // Use a deterministic ID to avoid duplicate edges on repeated expansion.
+            const edgeId = `exp-${nodeId}-${n.id}`;
+            if (!visEdges.get(edgeId)) {
+                newEdges.push({
+                    id: edgeId,
+                    from: nodeId,
+                    to: n.id,
+                    label: n.edge_type || '',
+                    title: n.edge_type || '',
+                });
+            }
+        });
+
+        if (newNodes.length > 0) visNodes.add(newNodes);
+        if (newEdges.length > 0) visEdges.add(newEdges);
+
+        // Briefly flash the expanded node to give feedback
+        network.selectNodes([nodeId]);
+
+    } catch (err) {
+        console.error('Failed to expand node:', err);
+    }
+}
+
+/**
+ * Show the sidebar with details for a clicked node.
+ * Fetches /api/graph/{id} for full details and neighbor list.
+ */
+async function showNodeSidebar(nodeId) {
+    const sidebar = document.getElementById('nodeSidebar');
+    const content = document.getElementById('sidebarContent');
+
+    sidebar.classList.add('visible');
+
+    // Show a loading state while we fetch
+    const nodeData = visNodes.get(nodeId);
+    content.innerHTML = `
+        <div class="sidebar-title">${nodeData ? nodeData.label : nodeId}</div>
+        <div class="loading" style="padding: 20px 0;">Loading details...</div>
+    `;
+
+    try {
+        const data = await apiFetch(`/api/graph/${nodeId}`);
+
+        const typeBadge = `<span class="type-badge ${data.type || ''}">${data.type || 'unknown'}</span>`;
+
+        let neighborsHtml = '';
+        if (data.neighbors && data.neighbors.length > 0) {
+            neighborsHtml = `
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Neighbors (${data.neighbors.length})</div>
+                    ${data.neighbors.map(n => `
+                        <div class="neighbor-item" data-node-id="${n.id}">
+                            <span class="type-badge ${n.type || ''}">${n.type || ''}</span>
+                            ${n.label}
+                            <div class="neighbor-edge">${n.edge_type || 'RELATES_TO'}${n.direction ? ' (' + n.direction + ')' : ''}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        content.innerHTML = `
+            <div class="sidebar-title">${data.label || nodeId}</div>
+            ${typeBadge}
+            ${data.description ? `
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Description</div>
+                    <div style="font-size: 13px; color: var(--text-secondary);">${data.description}</div>
+                </div>
+            ` : ''}
+            ${data.confidence !== undefined ? `
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Confidence</div>
+                    <div style="font-size: 14px;">${(data.confidence * 100).toFixed(0)}%</div>
+                </div>
+            ` : ''}
+            ${data.source_url ? `
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Source</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); word-break: break-all;">${data.source_url}</div>
+                </div>
+            ` : ''}
+            ${neighborsHtml}
+        `;
+
+        // Make neighbor items clickable — focus the graph on that node
+        content.querySelectorAll('.neighbor-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const nid = item.dataset.nodeId;
+                if (visNodes.get(nid)) {
+                    // Node already in the graph — just focus on it
+                    network.focus(nid, { scale: 1.2, animation: true });
+                    network.selectNodes([nid]);
+                } else {
+                    // Node not in graph yet — expand from the current node first
+                    expandNode(nodeId).then(() => {
+                        if (visNodes.get(nid)) {
+                            network.focus(nid, { scale: 1.2, animation: true });
+                            network.selectNodes([nid]);
+                        }
+                    });
+                }
+            });
+        });
+
+    } catch (err) {
+        content.innerHTML = `
+            <div class="sidebar-title">${nodeData ? nodeData.label : nodeId}</div>
+            <div class="error-msg">Failed to load details: ${err.message}</div>
+        `;
+    }
+}
+
+/** Close the node details sidebar. */
+function closeSidebar() {
+    document.getElementById('nodeSidebar').classList.remove('visible');
+}
+
+document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+
+// --- Graph filter controls ---
+// When the type filter or skeleton mode changes, reload the entire graph
+// with the new parameters. This is a full reload (not incremental) because
+// the server returns a different set of nodes.
+document.getElementById('typeFilter').addEventListener('change', () => {
+    graphLoaded = false;
+    loadGraph();
+});
+
+document.getElementById('skeletonMode').addEventListener('change', () => {
+    graphLoaded = false;
+    loadGraph();
+});
+
+
+// =========================================================================
+// Tab 3: HIDDEN CONNECTIONS
+// =========================================================================
+
+/**
+ * Fetch and render hidden connections.
+ *
+ * GET /api/hidden returns an array matching the output of
+ * hidden_connections.find_hidden_connections():
+ * [
+ *   {
+ *     source_id, source_label, source_type,
+ *     target_id, target_label, target_type,
+ *     distance   // cosine distance 0..1 (lower = more similar)
+ *   },
+ *   ...
+ * ]
+ *
+ * Sorted by distance ascending (closest/most-interesting first).
+ */
+async function loadHidden() {
+    const list = document.getElementById('hiddenList');
+    list.innerHTML = '<div class="loading">Loading hidden connections...</div>';
+
+    try {
+        const data = await apiFetch('/api/hidden');
+        hiddenLoaded = true;
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">No hidden connections found. The graph may be too small or embeddings may not be computed yet.</div>';
+            return;
+        }
+
+        // Render each hidden connection as a row.
+        // The distance bar shows similarity visually: shorter distance = fuller bar.
+        // We invert the distance (1 - distance) for the fill so that closer
+        // pairs have more prominent bars.
+        list.innerHTML = data.map((item, i) => {
+            const similarity = Math.round((1 - item.distance) * 100);
+            return `
+                <div class="hidden-row" data-source="${item.source_id}" data-target="${item.target_id}">
+                    <div class="hidden-entity">
+                        <span class="type-badge ${item.source_type}">${item.source_type}</span>
+                        <span class="hidden-entity-label">${item.source_label}</span>
+                    </div>
+                    <span class="hidden-arrow">&harr;</span>
+                    <div class="hidden-entity">
+                        <span class="type-badge ${item.target_type}">${item.target_type}</span>
+                        <span class="hidden-entity-label">${item.target_label}</span>
+                    </div>
+                    <div class="hidden-distance">
+                        <div class="hidden-distance-bar">
+                            <div class="hidden-distance-fill" style="width: ${similarity}%;"></div>
+                        </div>
+                        <div class="hidden-distance-label">${item.distance.toFixed(4)} dist</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Click a hidden connection row: switch to graph tab and highlight both nodes.
+        // If the nodes aren't currently visible in the graph, we load the graph first.
+        list.querySelectorAll('.hidden-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const sourceId = row.dataset.source;
+                const targetId = row.dataset.target;
+                highlightNodesInGraph([sourceId, targetId]);
+            });
+        });
+
+    } catch (err) {
+        list.innerHTML = `<div class="error-msg">Failed to load hidden connections: ${err.message}</div>`;
+    }
+}
+
+/**
+ * Switch to the graph tab and highlight specific nodes.
+ * If the graph isn't loaded yet, loads it first, then focuses.
+ */
+async function highlightNodesInGraph(nodeIds) {
+    // Switch to graph tab
+    document.querySelector('[data-tab="graph"]').click();
+
+    // Wait for graph to be loaded if it isn't yet
+    if (!graphLoaded) {
+        await loadGraph();
+    }
+
+    // Small delay to let the tab switch render, then focus on the nodes.
+    // vis-network needs the container to be visible to calculate positions.
+    setTimeout(() => {
+        if (!network) return;
+
+        // Check which of the requested nodes are actually in the dataset
+        const presentIds = nodeIds.filter(id => visNodes.get(id));
+
+        if (presentIds.length > 0) {
+            network.selectNodes(presentIds);
+            network.fit({
+                nodes: presentIds,
+                animation: { duration: 500, easingFunction: 'easeInOutQuad' },
+            });
+        }
+    }, 300);
+}
+
+
+// =========================================================================
+// Tab 4: COMMUNITIES
+// =========================================================================
+
+/**
+ * Fetch and render community summaries.
+ *
+ * GET /api/communities returns an array matching the output of
+ * community_summaries.compute_community_summaries():
+ * [
+ *   {
+ *     id: "community_0",
+ *     community_id: 0,
+ *     size: 12,
+ *     summary: "Community of 12 related concepts. ...",
+ *     top_entities: "Systems Thinking, Feedback Loops, ..."
+ *     members: ["entity-id-1", "entity-id-2", ...]  // optional
+ *   },
+ *   ...
+ * ]
+ */
+async function loadCommunities() {
+    const grid = document.getElementById('communityGrid');
+    grid.innerHTML = '<div class="loading">Loading communities...</div>';
+
+    try {
+        const data = await apiFetch('/api/communities');
+        communitiesLoaded = true;
+
+        if (!data || data.length === 0) {
+            grid.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">No communities found. Run community analysis first.</div>';
+            return;
+        }
+
+        grid.innerHTML = data.map(comm => {
+            // Parse top_entities string into individual badges
+            const entities = (comm.top_entities || '')
+                .split(',')
+                .map(e => e.trim())
+                .filter(e => e);
+
+            return `
+                <div class="card community-card" data-community-id="${comm.community_id}" data-members='${JSON.stringify(comm.members || [])}'>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span class="community-size">${comm.size}</span>
+                        <span class="community-size-label">members</span>
+                    </div>
+                    <div class="community-summary">${comm.summary || 'No summary available.'}</div>
+                    <div class="community-entities">
+                        ${entities.map(e => `<span class="community-entity">${e}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Click a community card: switch to graph tab and filter to members.
+        // If the API provides a members array, we highlight those specific nodes.
+        // Otherwise we filter by the community's top entities as a fallback.
+        grid.querySelectorAll('.community-card').forEach(card => {
+            card.addEventListener('click', () => {
+                let members;
+                try {
+                    members = JSON.parse(card.dataset.members || '[]');
+                } catch { members = []; }
+
+                if (members.length > 0) {
+                    highlightNodesInGraph(members);
+                } else {
+                    // Fallback: switch to graph tab (community filtering would
+                    // need a dedicated API parameter, which we can add later)
+                    document.querySelector('[data-tab="graph"]').click();
+                }
+            });
+        });
+
+    } catch (err) {
+        grid.innerHTML = `<div class="error-msg">Failed to load communities: ${err.message}</div>`;
+    }
+}
+
+
+// =========================================================================
+// Search
+// =========================================================================
+
+/**
+ * Search implementation with debounce.
+ *
+ * As the user types, we wait 300ms after the last keystroke before
+ * firing the API call. This prevents hammering the server on every
+ * keypress while still feeling responsive.
+ *
+ * GET /api/search?q=systems+thinking&mode=hybrid
+ *
+ * Expected response (matches the MCP memory_search output format):
+ * [
+ *   {
+ *     id: "entity-123",
+ *     label: "Systems Thinking",
+ *     type: "concept",
+ *     description: "...",
+ *     score: 0.92,
+ *     match_type: "semantic"
+ *   },
+ *   ...
+ * ]
+ */
+
+let searchTimeout = null;
+
+document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+
+    const query = document.getElementById('searchInput').value.trim();
+    const resultsDiv = document.getElementById('searchResults');
+
+    // Hide results if query is too short
+    if (query.length < 2) {
+        resultsDiv.classList.remove('visible');
+        return;
+    }
+
+    // Debounce: wait 300ms after user stops typing
+    searchTimeout = setTimeout(async () => {
+        const mode = document.getElementById('searchMode').value;
+
+        try {
+            const data = await apiFetch(`/api/search?q=${encodeURIComponent(query)}&mode=${mode}`);
+
+            if (!data || data.length === 0) {
+                resultsDiv.innerHTML = '<div class="search-result-item" style="color: var(--text-muted);">No results found</div>';
+                resultsDiv.classList.add('visible');
+                return;
+            }
+
+            resultsDiv.innerHTML = data.map(item => `
+                <div class="search-result-item" data-node-id="${item.id}">
+                    <span class="type-badge ${item.type || ''}">${item.type || ''}</span>
+                    <span style="flex: 1;">${item.label}</span>
+                    ${item.score !== undefined ? `<span style="color: var(--text-muted); font-size: 11px;">${(item.score * 100).toFixed(0)}%</span>` : ''}
+                </div>
+            `).join('');
+
+            resultsDiv.classList.add('visible');
+
+            // Click a search result: switch to graph tab and focus on that node
+            resultsDiv.querySelectorAll('.search-result-item').forEach(item => {
+                const nodeId = item.dataset.nodeId;
+                if (!nodeId) return;
+
+                item.addEventListener('click', () => {
+                    resultsDiv.classList.remove('visible');
+                    document.getElementById('searchInput').value = '';
+                    highlightNodesInGraph([nodeId]);
+                });
+            });
+
+        } catch (err) {
+            resultsDiv.innerHTML = `<div class="search-result-item" style="color: var(--red);">Search failed: ${err.message}</div>`;
+            resultsDiv.classList.add('visible');
+        }
+    }, 300);
+});
+
+// Close search results when clicking outside
+document.addEventListener('click', (e) => {
+    const container = document.querySelector('.search-container');
+    if (!container.contains(e.target)) {
+        document.getElementById('searchResults').classList.remove('visible');
+    }
+});
+
+// Close search results on Escape key
+document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.getElementById('searchResults').classList.remove('visible');
+        document.getElementById('searchInput').blur();
+    }
+});
+
+
+// =========================================================================
+// Path Traversal — Multi-hop reasoning visualization
+//
+// When the user clicks "Find Path", we query /api/path for all paths
+// between source and target, then animate the best path hop-by-hop.
+// Each hop highlights in sequence: node → edge → node → edge → node,
+// showing the reasoning chain the graph uses to connect two ideas.
+// =========================================================================
+
+/** Track highlighted path elements so we can clear them */
+let pathHighlightIds = { nodes: [], edges: [] };
+
+/**
+ * Find paths between two entities and animate the best one on the graph.
+ * Called by the "Find Path" button in the Graph tab controls.
+ */
+async function findAndAnimatePath() {
+    const source = document.getElementById('pathSource').value.trim();
+    const target = document.getElementById('pathTarget').value.trim();
+    if (!source || !target) return;
+
+    // Switch to graph tab if not already there
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-tab="graph"]').classList.add('active');
+    document.getElementById('tab-graph').classList.add('active');
+
+    // Ensure graph is loaded
+    if (!graphNetwork) await loadGraph();
+
+    // Fetch paths from API
+    const data = await apiFetch(`/api/path?source=${encodeURIComponent(source)}&target=${encodeURIComponent(target)}&max_hops=4`);
+
+    if (!data.paths || data.paths.length === 0) {
+        // Show "no path found" in sidebar
+        const sidebar = document.getElementById('sidebarContent');
+        sidebar.innerHTML = `
+            <h3>No Path Found</h3>
+            <p style="color:var(--text-muted)">No connection between "${source}" and "${target}" within 4 hops.</p>
+            <p style="color:var(--text-muted);font-size:12px;">Try broader search terms or ingest more documents.</p>
+        `;
+        document.getElementById('nodeSidebar').classList.add('visible');
+        return;
+    }
+
+    // Show all paths in sidebar
+    const sidebar = document.getElementById('sidebarContent');
+    let pathHtml = `<h3>Paths: ${source} → ${target}</h3>`;
+    pathHtml += `<p style="color:var(--text-muted);font-size:12px;">${data.path_count} path(s) found</p>`;
+    data.paths.forEach((p, i) => {
+        const chain = p.hops.map((h, j) => {
+            let s = `<span style="color:var(--accent)">${h.label}</span>`;
+            if (h.edge_to_next) s += ` <span style="color:var(--text-muted);font-size:11px;">→[${h.edge_to_next}]→</span> `;
+            return s;
+        }).join('');
+        pathHtml += `
+            <div class="card" style="cursor:pointer;margin:8px 0;" onclick="animatePath(${i})">
+                <div style="font-size:12px;color:var(--text-muted);">Path ${i+1} (${p.hop_count} hops, confidence: ${(p.path_confidence * 100).toFixed(0)}%)</div>
+                <div style="margin-top:4px;line-height:1.6;">${chain}</div>
+            </div>
+        `;
+    });
+    sidebar.innerHTML = pathHtml;
+    document.getElementById('nodeSidebar').classList.add('visible');
+
+    // Store paths globally for animation
+    window._pathData = data.paths;
+
+    // Animate the first (best) path
+    animatePath(0);
+}
+
+/**
+ * Animate a specific path hop-by-hop on the vis-network graph.
+ * Highlights nodes and edges in sequence with a delay between each hop,
+ * so the user can see the traversal chain that connects two ideas.
+ */
+async function animatePath(pathIndex) {
+    if (!window._pathData || !window._pathData[pathIndex]) return;
+    const path = window._pathData[pathIndex];
+    if (!graphNetwork || !graphNodes || !graphEdges) return;
+
+    // Clear previous highlights
+    clearPathHighlight();
+
+    // Find node IDs by matching labels in the graph
+    const allNodes = graphNodes.get();
+    const labelToId = {};
+    allNodes.forEach(n => { labelToId[n.label] = n.id; });
+
+    // Collect node IDs in path order
+    const pathNodeIds = path.node_labels
+        .map(label => {
+            // Try exact match first, then substring
+            const exact = allNodes.find(n => n.label === label);
+            if (exact) return exact.id;
+            const partial = allNodes.find(n => n.label.includes(label) || label.includes(n.label));
+            return partial ? partial.id : null;
+        })
+        .filter(Boolean);
+
+    if (pathNodeIds.length < 2) return;
+
+    // Animate hop by hop with 600ms delay
+    for (let i = 0; i < pathNodeIds.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // Highlight current node (orange glow)
+        const nodeId = pathNodeIds[i];
+        graphNodes.update({ id: nodeId, color: { background: '#ff6b35', border: '#ff9f1c' }, size: 25 });
+        pathHighlightIds.nodes.push(nodeId);
+
+        // Highlight edge to next node
+        if (i < pathNodeIds.length - 1) {
+            const nextId = pathNodeIds[i + 1];
+            const edgeType = path.edge_types[i] || '';
+
+            // Find the edge in the dataset
+            const allEdges = graphEdges.get();
+            const edge = allEdges.find(e =>
+                (e.from === nodeId && e.to === nextId) ||
+                (e.from === nextId && e.to === nodeId)
+            );
+            if (edge) {
+                graphEdges.update({ id: edge.id, color: { color: '#ff6b35' }, width: 4 });
+                pathHighlightIds.edges.push(edge.id);
+            }
+        }
+
+        // Focus the network on the current node
+        graphNetwork.focus(nodeId, { scale: 1.2, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+    }
+
+    // After animation, fit all path nodes in view
+    await new Promise(resolve => setTimeout(resolve, 400));
+    graphNetwork.fit({ nodes: pathNodeIds, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+}
+
+/**
+ * Clear path highlights — reset node colors and edge widths to defaults.
+ */
+function clearPathHighlight() {
+    if (graphNodes) {
+        pathHighlightIds.nodes.forEach(id => {
+            const node = graphNodes.get(id);
+            if (node) graphNodes.update({ id, color: null, size: null });
+        });
+    }
+    if (graphEdges) {
+        pathHighlightIds.edges.forEach(id => {
+            const edge = graphEdges.get(id);
+            if (edge) graphEdges.update({ id, color: null, width: null });
+        });
+    }
+    pathHighlightIds = { nodes: [], edges: [] };
+}
+
+// =========================================================================
+// Initial Load
+// =========================================================================
+
+// Load status tab data immediately since it's the default active tab.
+// Other tabs load lazily when first selected.
+loadStatus();
+</script>
+</body>
+</html>
