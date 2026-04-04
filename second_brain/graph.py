@@ -32,6 +32,14 @@ class Graph:
 
     def _init_schema(self):
         """Create node and edge tables if they don't exist."""
+        # --- Load extensions ---
+        for ext in ("vector", "fts", "algo"):
+            try:
+                self.conn.execute(f"INSTALL {ext}; LOAD EXTENSION {ext};")
+            except Exception:
+                pass  # Already loaded or not available
+
+        # --- Core node tables ---
         self.conn.execute("""
             CREATE NODE TABLE IF NOT EXISTS Entity (
                 id STRING PRIMARY KEY,
@@ -69,10 +77,40 @@ class Graph:
             )
         """)
 
+        # --- Semantic Spacetime: edge-nodes for hypergraph support ---
+        self.conn.execute("""
+            CREATE NODE TABLE IF NOT EXISTS EdgeNode (
+                id STRING PRIMARY KEY,
+                semantic_type STRING,
+                label STRING DEFAULT '',
+                weight DOUBLE DEFAULT 1.0,
+                confidence DOUBLE DEFAULT 0.5,
+                provenance STRING DEFAULT 'unknown',
+                created_at INT64 DEFAULT 0,
+                expired_at INT64 DEFAULT 0
+            )
+        """)
+
+        # --- Community summaries (pre-computed for "zoom out" queries) ---
+        self.conn.execute("""
+            CREATE NODE TABLE IF NOT EXISTS CommunityMeta (
+                id STRING PRIMARY KEY,
+                community_id INT64,
+                size INT64,
+                summary STRING DEFAULT '',
+                top_entities STRING DEFAULT '',
+                computed_at INT64 DEFAULT 0,
+                embedding FLOAT[768]
+            )
+        """)
+
+        # --- Core edge tables ---
         edge_defs = [
             ("MENTIONED_IN", "Entity", "Document"),
             ("CHUNK_OF", "Chunk", "Document"),
             ("RELATES_TO", "Entity", "Entity"),
+            ("CONNECTS", "Entity", "EdgeNode"),
+            ("BINDS", "EdgeNode", "Entity"),
         ]
         for edge_name, from_table, to_table in edge_defs:
             self.conn.execute(f"""
@@ -88,9 +126,61 @@ class Graph:
                 )
             """)
 
+        # --- Create FTS indexes (safe to create at init) ---
+        for table, index_name, cols in [
+            ("Entity", "entity_fts", ["label", "description"]),
+        ]:
+            try:
+                col_list = str(cols).replace("'", '"')
+                self.conn.execute(f"""
+                    CALL CREATE_FTS_INDEX('{table}', '{index_name}', {col_list})
+                """)
+            except Exception:
+                pass  # Index already exists
+
+        # NOTE: HNSW vector indexes are NOT created at init because they
+        # block SET operations on the embedding column. Call rebuild_vector_indexes()
+        # after bulk embedding operations are complete.
+
     # =========================================================================
     # Incremental writes (single entity/edge at a time)
     # =========================================================================
+
+    def add_edge_node(self, edge_node_id: str, semantic_type: str,
+                      label: str = "", weight: float = 1.0,
+                      confidence: float = 0.5, provenance: str = "unknown",
+                      participants: list[str] = None) -> bool:
+        """
+        Create a Semantic Spacetime edge-node and link it to participants.
+        Supports hypergraphs: one edge-node can connect 3+ entities.
+        """
+        now = int(time.time())
+        self.conn.execute("""
+            MERGE (en:EdgeNode {id: $eid})
+            ON CREATE SET en.semantic_type = $stype, en.label = $elabel,
+                en.weight = $ew, en.confidence = $econf,
+                en.provenance = $eprov, en.created_at = $enow
+        """, parameters={
+            "eid": edge_node_id, "stype": semantic_type, "elabel": label,
+            "ew": weight, "econf": confidence,
+            "eprov": provenance, "enow": now,
+        })
+
+        if participants:
+            for i, entity_id in enumerate(participants):
+                if i == 0:
+                    # First participant: CONNECTS (source → edge-node)
+                    self.conn.execute("""
+                        MATCH (e:Entity {id: $src}), (en:EdgeNode {id: $enid})
+                        MERGE (e)-[:CONNECTS]->(en)
+                    """, parameters={"src": entity_id, "enid": edge_node_id})
+                else:
+                    # Remaining participants: BINDS (edge-node → target)
+                    self.conn.execute("""
+                        MATCH (en:EdgeNode {id: $enid}), (e:Entity {id: $tgt})
+                        MERGE (en)-[:BINDS]->(e)
+                    """, parameters={"enid": edge_node_id, "tgt": entity_id})
+        return True
 
     def add_entity(self, entity_id: str, entity_type: str, label: str,
                    description: str = "", confidence: float = 0.5,
@@ -258,9 +348,49 @@ class Graph:
             SET e.embedding = $emb
         """, parameters={"id": entity_id, "emb": embedding})
 
+    def rebuild_vector_indexes(self) -> None:
+        """
+        (Re)build HNSW vector indexes. Call after bulk embedding operations.
+        Drops existing indexes first, then recreates.
+        """
+        for table, index_name, col in [
+            ("Entity", "entity_vec", "embedding"),
+            ("CommunityMeta", "community_vec", "embedding"),
+        ]:
+            try:
+                self.conn.execute(
+                    f"CALL DROP_VECTOR_INDEX('{table}', '{index_name}')")
+            except Exception:
+                pass
+            try:
+                self.conn.execute(f"""
+                    CALL CREATE_VECTOR_INDEX('{table}', '{index_name}', '{col}',
+                        mu := 30, ml := 60, metric := 'cosine', efc := 200)
+                """)
+            except Exception:
+                pass
+
     def vector_search(self, query_embedding: list[float],
                       limit: int = 10) -> list:
-        """Find entities by vector similarity using native cosine similarity."""
+        """Find entities by vector similarity. Uses HNSW index if available, falls back to brute force."""
+        # Try HNSW index first
+        try:
+            result = self.conn.execute("""
+                CALL QUERY_VECTOR_INDEX('Entity', 'entity_vec', $qemb, $limit)
+                RETURN node.id AS id, node.label AS label,
+                       node.entity_type AS type, distance AS score
+            """, parameters={"qemb": query_embedding, "limit": limit})
+            columns = result.get_column_names()
+            rows = []
+            while result.has_next():
+                row = result.get_next()
+                rows.append(dict(zip(columns, row)))
+            if rows:
+                return rows
+        except Exception:
+            pass
+
+        # Fallback: brute-force cosine similarity
         from .queries import QUERIES
         return self.query(QUERIES["vector_search"],
                           parameters={"qemb": query_embedding, "limit": limit})
