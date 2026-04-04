@@ -39,7 +39,26 @@ This toolkit:
 
 ---
 
-## Quick Start
+## Getting Started — 4 Commands
+
+```bash
+git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
+cd second-brain-open-kg
+bash setup.sh
+python scripts/ingest_obsidian.py --vault ~/your-obsidian-vault
+```
+
+That's it. Your knowledge graph is built. Search it:
+
+```bash
+python scripts/search_cli.py -q "your topic" --mode hybrid
+```
+
+Everything runs locally. No API keys. No accounts. No data leaves your machine.
+
+---
+
+## Detailed Setup
 
 ### Prerequisites
 
@@ -47,20 +66,21 @@ This toolkit:
 - **[Ollama](https://ollama.com)** installed and running (handles all AI locally)
 - **An Obsidian vault** (or any folder of markdown files)
 
-### Setup
+### Step 1: Install
 
 ```bash
-git clone https://github.com/M0nkeyFl0wer/open-second-brain.git
-cd open-second-brain
-
-# Run setup (installs packages + downloads AI models)
+git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
+cd second-brain-open-kg
 bash setup.sh
-
-# Verify everything works
-python -m second_brain.check
 ```
 
-You should see:
+`setup.sh` creates a virtual environment, installs all Python packages, downloads the spaCy language model, and pulls the Ollama models (nomic-embed-text for embeddings, llama3.2 for extraction). Takes about 5 minutes depending on your internet speed.
+
+### Step 2: Verify
+
+```bash
+python -m second_brain.check
+```
 
 ```
 open-second-brain system check
@@ -77,15 +97,23 @@ Ontology: Ontology(8 entity types, 9 edge types)
   All checks passed.
 ```
 
-### Configure Your Vault
+If anything says NOT INSTALLED or MISSING, the check tells you exactly what to run.
 
-Edit `second_brain/config.py`:
+### Step 3: Point at Your Vault
 
-```python
-VAULT_PATH = "~/obsidian-vault"  # Path to your Obsidian vault
+Either pass it on the command line:
+
+```bash
+python scripts/ingest_obsidian.py --vault ~/obsidian-vault
 ```
 
-### Ingest Your Notes
+Or set it permanently in `second_brain/config.py`:
+
+```python
+VAULT_PATH = "~/obsidian-vault"
+```
+
+### Step 4: Ingest
 
 ```bash
 python scripts/ingest_obsidian.py
@@ -560,6 +588,36 @@ graph.rebuild_vector_indexes()
 
 ---
 
+## Claude Code Skills
+
+If you use [Claude Code](https://claude.ai/code), this repo ships with skills that wrap every script as a slash command:
+
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| `/ingest` | `python scripts/ingest_obsidian.py` | Scan vault, extract, embed, load |
+| `/search` | `python scripts/search_cli.py` | Keyword, semantic, hybrid, hidden, path |
+| `/analyze` | `python scripts/run_analysis.py` | Topology: gaps, bridges, communities, homology |
+| `/briefing` | `python scripts/daily_briefing.py` | Daily Reflection markdown |
+| `/validate` | `python scripts/validate_ontology.py` | Ontology health: ICR, CI, IPR |
+| `/hidden` | `hidden_connections.py` | Find semantically similar but unlinked ideas |
+| `/communities` | `community_summaries.py` | Louvain → embed → zoom-out queries |
+
+### Reusable Tool Skills
+
+The repo also includes reference skills for the underlying tools. These are portable — useful for anyone building knowledge graph tooling with Claude Code:
+
+```
+.claude/skills/tools/
+├── ladybug.md       — LadybugDB: Cypher, Python API, extensions, HNSW, FTS
+├── ladybug-rag.md   — Graph RAG: vector + BM25 + graph hybrid retrieval
+├── networkx.md      — Centrality, communities, bridges, shortest paths
+└── ripser.md        — Persistent homology for topological gap detection
+```
+
+These skills teach Claude Code how to write correct LadybugDB Cypher, use HNSW vector indexes, build NetworkX graphs from query results, and interpret persistence diagrams. Drop them in any project's `.claude/skills/` directory.
+
+---
+
 ## File Reference
 
 ```
@@ -590,6 +648,19 @@ open-second-brain/
 │   ├── run_analysis.py                 # Topology analysis
 │   ├── daily_briefing.py               # Generate daily reflection
 │   └── validate_ontology.py            # Ontology health (ICR/CI/IPR)
+├── .claude/skills/
+│   ├── ingest/SKILL.md                 # /ingest slash command
+│   ├── search/SKILL.md                 # /search slash command
+│   ├── analyze/SKILL.md                # /analyze slash command
+│   ├── briefing/SKILL.md               # /briefing slash command
+│   ├── validate/SKILL.md               # /validate slash command
+│   ├── hidden/SKILL.md                 # /hidden slash command
+│   ├── communities/SKILL.md            # /communities slash command
+│   └── tools/                          # Reusable reference skills
+│       ├── ladybug.md                  #   LadybugDB API + Cypher
+│       ├── ladybug-rag.md              #   Graph RAG patterns
+│       ├── networkx.md                 #   Centrality, communities, paths
+│       └── ripser.md                   #   Persistent homology
 ├── docs/
 │   └── privacy-guide.md                # Privacy mode comparison
 ├── data/                               # Graph database (gitignored)
