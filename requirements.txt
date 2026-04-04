@@ -5,3 +5,5 @@ spacy>=3.7.0
 networkx>=3.2
 ripser>=0.6.0
 ollama>=0.3.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
