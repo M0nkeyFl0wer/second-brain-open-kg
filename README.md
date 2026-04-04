@@ -4,6 +4,19 @@ A personal knowledge graph that lives on top of your Obsidian vault. Ingest your
 
 **No cloud required. No accounts. Your thoughts stay yours.**
 
+### Built With
+
+[![LadybugDB](https://img.shields.io/badge/LadybugDB-0.15.3-orange?style=flat-square&logo=data:image/svg+xml;base64,)](https://ladybugdb.com)
+[![NetworkX](https://img.shields.io/badge/NetworkX-3.6-blue?style=flat-square)](https://networkx.org)
+[![Ollama](https://img.shields.io/badge/Ollama-local_AI-black?style=flat-square)](https://ollama.com)
+[![spaCy](https://img.shields.io/badge/spaCy-NLP-09a3d5?style=flat-square)](https://spacy.io)
+
+<a href="https://ladybugdb.com"><img src="https://ladybugdb.com/img/logo.svg" alt="LadybugDB" height="50"></a>&nbsp;&nbsp;&nbsp;
+<a href="https://networkx.org"><img src="https://networkx.org/documentation/stable/_static/networkx_logo.svg" alt="NetworkX" height="50"></a>&nbsp;&nbsp;&nbsp;
+<a href="https://ollama.com"><img src="https://ollama.com/public/ollama.png" alt="Ollama" height="50"></a>
+
+> **Research foundation:** [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) — Belova, Kansal, Liang, Xiao & Jha (Princeton, 2026). Argues for domain-specific superintelligence built on knowledge graphs, ontologies, and formal logic rather than monolithic LLMs. This project implements that vision: a local, domain-specific knowledge graph that augments your thinking without requiring cloud-scale compute.
+
 ## What This Does
 
 You have an Obsidian vault full of notes — reading notes, project ideas, journal entries, questions, insights. You link some of them with `[[wikilinks]]`, but most connections live only in your head.
