@@ -166,7 +166,9 @@ def main():
                 results = find_hidden_for_entity(graph, seeds[0]["id"])
                 print(f"Hidden connections for: {seeds[0]['label']}\n")
                 for r in results[:args.limit]:
-                    print(f"  [{r['type']:15}] {r['label']}")
+                    rtype = r.get("target_type", r.get("type", ""))
+                    rlabel = r.get("target_label", r.get("label", ""))
+                    print(f"  [{rtype:15}] {rlabel}")
                     print(f"                    distance: {r['distance']:.3f} | unlinked")
             except ImportError:
                 print("Hidden connections module not available.")

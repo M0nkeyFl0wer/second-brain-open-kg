@@ -167,9 +167,9 @@ def _find_community_gaps(G: nx.Graph, communities: dict, num_communities: int) -
 
 
 def _find_contradictions(graph) -> list:
-    """Find CONTRADICTS edges in the graph."""
+    """Find conflicting beliefs (CONFLICTS_WITH edges) in the graph."""
     from .queries import QUERIES
-    return graph.query(QUERIES["contradictions"],
+    return graph.query(QUERIES["conflicting_beliefs"],
                        parameters={"limit": 20})
 
 

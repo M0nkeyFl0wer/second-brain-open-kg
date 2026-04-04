@@ -98,11 +98,9 @@ def generate_briefing(graph: Graph, output_dir: Path = None) -> str:
             if hidden:
                 sections.append(f"## Hidden Connections: {len(hidden)}\n")
                 for h in hidden[:5]:
-                    sections.append(f"  **{h['entity_a']}** ↔ **{h['entity_b']}**")
-                    if h.get("similarity"):
-                        sections.append(f"  Similarity: {h['similarity']:.2f}")
-                    if h.get("reason"):
-                        sections.append(f"  → {h['reason']}")
+                    sections.append(f"  **{h['source_label']}** ↔ **{h['target_label']}**")
+                    if h.get("distance") is not None:
+                        sections.append(f"  Distance: {h['distance']:.3f}")
                     sections.append("")
         except ImportError:
             # hidden_connections module not yet implemented — skip silently
@@ -164,8 +162,8 @@ def generate_briefing(graph: Graph, output_dir: Path = None) -> str:
     filepath.write_text(content)
 
     # Copy to Obsidian vault inbox for easy review
-    if config.OBSIDIAN_VAULT:
-        obsidian_path = Path(config.OBSIDIAN_VAULT).expanduser()
+    if config.VAULT_PATH:
+        obsidian_path = Path(config.VAULT_PATH).expanduser()
         if obsidian_path.exists():
             inbox = obsidian_path / "00-inbox"
             inbox.mkdir(exist_ok=True)

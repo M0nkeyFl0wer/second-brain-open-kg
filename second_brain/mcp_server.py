@@ -82,7 +82,7 @@ def _init() -> tuple[Graph, Ontology, Extractor]:
 # ===========================================================================
 
 @mcp.tool()
-def memory_write(thought: str, tags: list[str] = []) -> str:
+def memory_write(thought: str, tags: list[str] | None = None) -> str:
     """Capture a thought, auto-classify it, and link it to the existing knowledge graph.
 
     The thought is run through the full extraction pipeline (deterministic,

@@ -76,7 +76,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
 
 
 def main():
-    ingest_dir = config.INGEST_DIR
+    ingest_dir = getattr(config, "INGEST_DIR", __import__("pathlib").Path("ingest"))
     if not ingest_dir.exists():
         ingest_dir.mkdir(parents=True)
         print(f"Created ingest directory: {ingest_dir}/")

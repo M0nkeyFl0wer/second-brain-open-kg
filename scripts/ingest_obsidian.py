@@ -72,9 +72,31 @@ def main():
         print(f"  Extracted: {len(result['entities'])} entities, "
               f"{len(result['edges'])} edges")
 
-        # Add wikilinks as edges (note-to-note connections)
+        # Store wikilinks as ASSOCIATED_WITH edges between linked notes
+        # (links are note-title → note-title, resolved by label match)
         if note["wikilinks"]:
             print(f"  Wikilinks: {len(note['wikilinks'])}")
+            for link_target in note["wikilinks"]:
+                # Create a concept entity for the linked note if not yet extracted
+                link_id = f"wikilink_{__import__('hashlib').sha256(link_target.encode()).hexdigest()[:16]}"
+                result["entities"].append({
+                    "id": link_id,
+                    "entity_type": "concept",
+                    "label": link_target,
+                    "description": f"Linked note: [[{link_target}]]",
+                    "confidence": 0.8,
+                    "source_url": note["path"],
+                    "provenance": "obsidian_wikilink",
+                })
+                # Edge from this note's doc to the linked concept
+                result["edges"].append({
+                    "source_id": note["doc_id"],
+                    "target_id": link_id,
+                    "edge_type": "ASSOCIATED_WITH",
+                    "confidence": 0.9,
+                    "source_url": note["path"],
+                    "provenance": "obsidian_wikilink",
+                })
 
         # Add tags as entities
         for tag in note["tags"]:

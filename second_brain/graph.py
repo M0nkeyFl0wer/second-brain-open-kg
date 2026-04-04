@@ -299,9 +299,10 @@ class Graph:
 
     def bulk_add_edges(self, edges: list[dict]) -> int:
         """
-        Bulk-load edges via COPY FROM Parquet.
-        Each dict must have: source_id, target_id, edge_type, weight,
-        confidence, source_url, provenance, created_at.
+        Load edges via parameterized MERGE (iterative, not bulk Parquet).
+        COPY FROM for rel tables requires exact internal ID format, so we
+        use MERGE for correctness. Each dict must have: source_id, target_id,
+        edge_type. Optional: weight, confidence, source_url, provenance, created_at.
         All validated against ontology before loading.
         """
         valid = [e for e in edges
