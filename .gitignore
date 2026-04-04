@@ -1,0 +1,23 @@
+# Data (never commit investigation data to a public repo)
+data/
+ingest/
+briefings/
+*.db
+*.kuzu/
+*.lbug/
+
+# Analysis outputs
+analysis-report-*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
