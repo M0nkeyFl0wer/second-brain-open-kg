@@ -15,7 +15,15 @@ A personal knowledge graph that lives on top of your Obsidian vault. Ingest your
 <a href="https://networkx.org"><img src="https://networkx.org/documentation/stable/_static/networkx_logo.svg" alt="NetworkX" height="50"></a>&nbsp;&nbsp;&nbsp;
 <a href="https://ollama.com"><img src="https://ollama.com/public/ollama.png" alt="Ollama" height="50"></a>
 
-> **Research foundation:** [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) — Belova, Kansal, Liang, Xiao & Jha (Princeton, 2026). Argues for domain-specific superintelligence built on knowledge graphs, ontologies, and formal logic rather than monolithic LLMs. This project implements that vision: a local, domain-specific knowledge graph that augments your thinking without requiring cloud-scale compute.
+> ### Why This Exists
+>
+> This project was inspired by [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) (Belova, Kansal, Liang, Xiao & Jha — Princeton, 2026), which argues that the current path of scaling monolithic LLMs is physically and economically unsustainable. Their alternative: **domain-specific superintelligence** — small, specialized models grounded in knowledge graphs, ontologies, and formal logic, organized as composable "societies" rather than a single giant model.
+>
+> The paper's core insight is that intelligence comes from manipulating relational symbolic structures, not just pattern-matching over massive corpora. Knowledge graphs aren't just retrieval tools — they're the **structural scaffolding** for reasoning, verification, and synthetic training data. Every fact traces back to a source. Every reasoning step is auditable. Every connection is explicit.
+>
+> Reading this paper introduced me to the idea of **verification with topology** — using graph structure itself (persistent homology, community detection, betweenness centrality) to validate knowledge rather than trusting LLM confidence scores. The decentralized, modular, local-first approach resonated deeply. This project is part of a broader effort to build tools that put knowledge graph intelligence in the hands of individuals, not data centers.
+>
+> *"Rather than a single generalist LLM monolith, we envision a future built on specialized small language models."* — Belova et al.
 
 ## What This Does
 
