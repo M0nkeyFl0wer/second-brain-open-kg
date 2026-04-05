@@ -2,7 +2,7 @@
 
 *In the era of LLM agents, share the idea — not the code. Give this file to your agent and it builds the tool for you.*
 
-<img src="static/social-card.png" alt="The Topological Second Brain: A Full-Stack AI Memory Architecture" width="100%">
+<img src="[static/social-card.png](https://github.com/M0nkeyFl0wer/second-brain-open-kg/blob/main/docs/1775351442021.png)" alt="LadybugDB-cybernetic" width="100%">
 
 ### Built With
 
