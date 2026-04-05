@@ -41,12 +41,9 @@ if TYPE_CHECKING:
 #   2. Shared EdgeNode: Entity -CONNECTS-> EdgeNode -BINDS-> Entity
 #   3. Shared EdgeNode reverse: Entity <-BINDS- EdgeNode <-CONNECTS- Entity
 _CONNECTED_CHECK = """
-    OPTIONAL MATCH (a:Entity {id: $src})-[:RELATES_TO]-(b:Entity {id: $tgt})
-    WITH count(*) AS direct
-    OPTIONAL MATCH (a2:Entity {id: $src})-[:CONNECTS]->(en:EdgeNode)-[:BINDS]->(b2:Entity {id: $tgt})
-    WITH direct, count(*) AS via_edge_fwd
-    OPTIONAL MATCH (a3:Entity {id: $tgt})-[:CONNECTS]->(en2:EdgeNode)-[:BINDS]->(b3:Entity {id: $src})
-    RETURN (direct + via_edge_fwd + count(*)) AS connected
+    MATCH (a:Entity {id: $src})-[:RELATES_TO]-(b:Entity {id: $tgt})
+    RETURN 1 AS connected
+    LIMIT 1
 """
 
 # Fetch a single entity's embedding by ID.
@@ -291,10 +288,24 @@ def _are_connected(graph: "Graph", src_id: str, tgt_id: str) -> bool:
       - Forward edge-node path: src -CONNECTS-> EdgeNode -BINDS-> tgt
       - Reverse edge-node path: tgt -CONNECTS-> EdgeNode -BINDS-> src
     """
+    # Check direct RELATES_TO edge
     rows = graph.query(
         _CONNECTED_CHECK,
         parameters={"src": src_id, "tgt": tgt_id},
     )
-    if not rows:
-        return False
-    return rows[0]["connected"] > 0
+    if rows:
+        return True
+
+    # Check edge-node path: src→CONNECTS→EdgeNode→BINDS→tgt (either direction)
+    en_rows = graph.query("""
+        MATCH (a:Entity {id: $src})-[:CONNECTS]->(en:EdgeNode)-[:BINDS]->(b:Entity {id: $tgt})
+        RETURN 1 AS connected LIMIT 1
+    """, parameters={"src": src_id, "tgt": tgt_id})
+    if en_rows:
+        return True
+
+    en_rows2 = graph.query("""
+        MATCH (a:Entity {id: $tgt})-[:CONNECTS]->(en:EdgeNode)-[:BINDS]->(b:Entity {id: $src})
+        RETURN 1 AS connected LIMIT 1
+    """, parameters={"src": src_id, "tgt": tgt_id})
+    return bool(en_rows2)
