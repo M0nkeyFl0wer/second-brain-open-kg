@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LadybugDB - Embedded Columnar Graph Database for Highly Regulated Industries</title>
+    <meta name="description" content="LadybugDB is the embedded columnar graph database for agentic solutions in highly regulated industries. The successor to Kuzu. Get started in minutes.">
+    <meta name="keywords" content="graph database, embedded database, columnar storage, agentic AI, legal tech, medical AI, finance, Kuzu successor, highly regulated industries">
+    <meta property="og:title" content="LadybugDB - Embedded Columnar Graph Database">
+    <meta property="og:description" content="The only viable successor to Kuzu. Built for agentic solutions in highly regulated industries.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/tailwind-config.js"></script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .gradient-text {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #b91c1c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .dark .gradient-text {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-glow {
+            box-shadow: 0 0 60px rgba(220, 38, 38, 0.3);
+        }
+        .dark .hero-glow {
+            box-shadow: 0 0 80px rgba(220, 38, 38, 0.4);
+        }
+        .install-bar {
+            backdrop-filter: blur(10px);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+        }
+        .section-number {
+            font-variant-numeric: tabular-nums;
+        }
+        @media (max-width: 768px) {
+            .install-bar { flex-direction: column; gap: 0.75rem; }
+            .install-bar > div { width: 100%; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-300">
+    
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="#" class="flex items-center gap-2 group">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="100" cy="110" rx="60" ry="70" fill="#dc2626"/>
+                        <circle cx="100" cy="50" r="25" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <line x1="100" y1="50" x2="100" y2="180" stroke="#1f2937" stroke-width="3" class="dark:stroke-gray-800"/>
+                        <circle cx="70" cy="80" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <circle cx="65" cy="110" r="12" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <circle cx="70" cy="145" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <circle cx="130" cy="80" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <circle cx="135" cy="110" r="12" fill="#1f2937" class="dark:fill-gray-800"/>
+                        <circle cx="130" cy="145" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                    </svg>
+                    <span class="font-bold text-xl tracking-tight">LadybugDB</span>
+                </a>
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+                    <a href="https://docs.ladybugdb.com" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Docs</a>
+                    <span class="text-gray-300 dark:text-gray-700">/</span>
+                    <a href="https://blog.ladybugdb.com" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Blog</a>
+                    <span class="text-gray-300 dark:text-gray-700">/</span>
+                    <a href="https://github.com/LadybugDB/ladybug" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">GitHub</a>
+                    <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Toggle theme">
+                        <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    </button>
+                </nav>
+                <button id="mobileMenuBtn" class="md:hidden p-2" aria-label="Menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="hidden fixed inset-0 z-40 bg-white dark:bg-gray-950 pt-20 px-4">
+        <nav class="flex flex-col gap-4 text-lg font-medium">
+            <a href="https://docs.ladybugdb.com" class="py-2 border-b border-gray-200 dark:border-gray-800">Docs</a>
+            <a href="https://blog.ladybugdb.com" class="py-2 border-b border-gray-200 dark:border-gray-800">Blog</a>
+            <a href="https://github.com/LadybugDB/ladybug" class="py-2 border-b border-gray-200 dark:border-gray-800">GitHub</a>
+            <button id="mobileThemeToggle" class="flex items-center gap-2 py-2">
+                <span>Toggle Theme</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent dark:from-red-950/20 dark:to-transparent pointer-events-none"></div>
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm font-medium">
+                        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        The Kuzu successor is here
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                        Ship agentic solutions <span class="gradient-text">10x faster</span>
+                    </h1>
+                    <p class="text-lg md:text-xl font-medium text-red-600 dark:text-red-400">
+                        DuckDB for graphs
+                    </p>
+                    <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-lg">
+                        The embedded columnar graph database built for highly regulated industries. Production-ready in minutes.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="https://docs.ladybugdb.com" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+                            Get Started
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        </a>
+                        <a href="https://github.com/LadybugDB/ladybug" class="inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 font-semibold hover:border-red-600 dark:hover:border-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            Star on GitHub
+                        </a>
+                    </div>
+                </div>
+                <div class="relative flex justify-center">
+                    <div class="relative hero-glow rounded-full p-8 bg-white dark:bg-gray-900">
+                        <svg class="w-48 h-48 md:w-64 md:h-64" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="100" cy="110" rx="60" ry="70" fill="#dc2626"/>
+                            <circle cx="100" cy="50" r="25" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <line x1="100" y1="50" x2="100" y2="180" stroke="#1f2937" stroke-width="3" class="dark:stroke-gray-800"/>
+                            <circle cx="70" cy="80" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="65" cy="110" r="12" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="70" cy="145" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="130" cy="80" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="135" cy="110" r="12" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="130" cy="145" r="10" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <line x1="90" y1="35" x2="80" y2="20" stroke="#1f2937" stroke-width="2" stroke-linecap="round" class="dark:stroke-gray-800"/>
+                            <line x1="110" y1="35" x2="120" y2="20" stroke="#1f2937" stroke-width="2" stroke-linecap="round" class="dark:stroke-gray-800"/>
+                            <circle cx="80" cy="20" r="3" fill="#1f2937" class="dark:fill-gray-800"/>
+                            <circle cx="120" cy="20" r="3" fill="#1f2937" class="dark:fill-gray-800"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Install Bar -->
+            <div class="mt-16 max-w-2xl mx-auto">
+                <div class="install-bar flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+                    <select id="installSelect" class="bg-red-600 text-white px-4 py-2 rounded-lg font-medium text-sm cursor-pointer hover:bg-red-700 transition-colors appearance-none pr-8" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%23ffffff%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center;">
+                        <option value="curl">cURL</option>
+                        <option value="brew">Homebrew</option>
+                    </select>
+                    <div class="flex-1 flex items-center justify-between bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 font-mono text-sm">
+                        <code id="installCommand" class="text-gray-800 dark:text-gray-200">curl -fsSL https://install.ladybugdb.com | sh</code>
+                        <button id="copyBtn" class="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors" aria-label="Copy to clipboard">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="py-20 bg-white dark:bg-gray-900">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="section-number text-red-600 dark:text-red-400 font-mono text-sm">01</span>
+                <h2 class="mt-4 text-3xl md:text-4xl font-bold">The graph database market just lost its leader</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">Kuzu, with 10+ enterprise customers and VLDB publications, was acquired by Apple. Teams using embedded graph databases for agentic AI are now scrambling for a replacement.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="p-6 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+                    <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Development Halted</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Kuzu's open source development stopped post-acquisition. No new features, bug fixes, or community support.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+                    <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Security Risk</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Unpatched vulnerabilities and no path forward for critical security updates. Your data deserves better.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+                    <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Migration Urgency</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Agentic applications in highly regulated industries need a reliable embedded graph database now.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="py-20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="section-number text-red-600 dark:text-red-400 font-mono text-sm">02</span>
+                <h2 class="mt-4 text-3xl md:text-4xl font-bold">LadybugDB: The only viable successor</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">Built on battle-tested foundations with a commitment to open source. LadybugDB carries forward the Kuzu vision with active development and enterprise support.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 card-hover transition-all duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-red-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">10x Faster Queries</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Columnar storage with vectorized execution delivers lightning-fast analytical queries on graph data.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 card-hover transition-all duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-red-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Embedded & Serverless</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Zero external dependencies. Run anywhere - edge, embedded, or cloud. Perfect for agentic applications.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 card-hover transition-all duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-red-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Columnar Storage</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Optimized for analytics on connected data. Compress better, scan faster than traditional graph stores.</p>
+                </div>
+                <div class="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 card-hover transition-all duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-red-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-2">Enterprise Support</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Commercial support contracts available. Backed by a team committed to long-term development.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof / Trust Section -->
+    <section class="py-20 bg-white dark:bg-gray-900">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="section-number text-red-600 dark:text-red-400 font-mono text-sm">03</span>
+                <h2 class="mt-4 text-3xl md:text-4xl font-bold">Built on proven foundations</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">LadybugDB inherits from research published at top-tier database conferences and battle-tested in production environments.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="text-center p-6">
+                    <div class="text-4xl font-bold gradient-text mb-2">VLDB</div>
+                    <p class="text-gray-600 dark:text-gray-400">Published at top-tier database conferences</p>
+                </div>
+                <div class="text-center p-6">
+                    <div class="text-4xl font-bold gradient-text mb-2">10+</div>
+                    <p class="text-gray-600 dark:text-gray-400">Enterprise customers from predecessor</p>
+                </div>
+                <div class="text-center p-6">
+                    <div class="text-4xl font-bold gradient-text mb-2">MIT</div>
+                    <p class="text-gray-600 dark:text-gray-400">Open source license, forever</p>
+                </div>
+            </div>
+            <div class="p-8 rounded-2xl bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border border-red-200 dark:border-red-900/50">
+                <div class="flex flex-col md:flex-row items-center gap-8">
+                    <div class="flex-1">
+<blockquote class="text-lg md:text-xl italic text-gray-800 dark:text-gray-200 mb-4">
+                            The Kuzu team set a high bar in graph databases with their research innovations described in publications at leading conferences such as VLDB, making it easy to deploy anywhere with a fast Cypher query engine and a permissive license for use in highly regulated industries. Ladybug is committed to maintaining that bar with a low barrier to entry.
+                        </blockquote>
+                        <a href="https://vldb.org/cidrdb/papers/2023/p48-jin.pdf" target="_blank" class="inline-flex items-center text-red-600 dark:text-red-400 hover:underline font-medium">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            Read the VLDB 2023 paper
+                        </a>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <div class="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="py-20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="section-number text-red-600 dark:text-red-400 font-mono text-sm">04</span>
+                <h2 class="mt-4 text-3xl md:text-4xl font-bold">Production-ready in 3 steps</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">From installation to querying your graph in under 5 minutes.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="relative">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xl">1</div>
+                        <div class="h-px flex-1 bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
+                    </div>
+                    <h3 class="font-semibold text-xl mb-2">Install</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">One command installation via curl or Homebrew. No dependencies, no configuration needed.</p>
+                    <code class="block p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-mono text-gray-800 dark:text-gray-200">brew install ladybug</code>
+                </div>
+                <div class="relative">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xl">2</div>
+                        <div class="h-px flex-1 bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
+                    </div>
+                    <h3 class="font-semibold text-xl mb-2">Connect</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Import your data using Cypher queries or one of our language SDKs (Python, Node.js, Rust).</p>
+                    <code class="block p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-mono text-gray-800 dark:text-gray-200">CREATE (n:Entity {name: 'Alice'})</code>
+                </div>
+                <div class="relative">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xl">3</div>
+                    </div>
+                    <h3 class="font-semibold text-xl mb-2">Query</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Run analytical queries with Cypher. Leverage columnar storage for complex agg/egations.</p>
+                    <code class="block p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-mono text-gray-800 dark:text-gray-200">MATCH (n)-[r]-&gt;(m) RETURN n, r, m</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="py-20 bg-gradient-to-br from-red-600 to-red-800 dark:from-red-700 dark:to-red-900">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">Ready to migrate from Kuzu?</h2>
+            <p class="text-xl text-red-100 mb-8">Join the teams building the future of agentic AI on LadybugDB. No credit card required. Open source forever.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://docs.ladybugdb.com" class="inline-flex items-center justify-center px-8 py-4 rounded-lg bg-white text-red-700 font-bold hover:bg-gray-100 transition-colors shadow-xl">
+                    Get Started Now
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </a>
+                <a href="/cdn-cgi/l/email-protection#bdced2ded4dcd1fdd1dcd9c4dfc8dad9df93ded2d0" class="inline-flex items-center justify-center px-8 py-4 rounded-lg border-2 border-white text-white font-bold hover:bg-white/10 transition-colors">
+                    Contact Us
+                </a>
+            </div>
+            <div class="mt-12 flex flex-wrap justify-center gap-8 text-red-200 text-sm">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>MIT License</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>Community Support</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>Enterprise Contracts Available</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 bg-gray-100 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-2">
+                    <svg class="w-8 h-8" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="100" cy="110" rx="60" ry="70" fill="#dc2626"/>
+                        <circle cx="100" cy="50" r="25" fill="#1f2937" class="dark:fill-gray-800"/>
+                    </svg>
+                    <span class="font-bold text-xl">LadybugDB</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="https://github.com/LadybugDB/ladybug" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" aria-label="GitHub">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    </a>
+                    <a href="https://x.com/lbugdb" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" aria-label="X (Twitter)">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </a>
+                    <a href="https://www.linkedin.com/company/ladybugdb/" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" aria-label="LinkedIn">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    </a>
+                    <a href="https://discord.gg/EKMsvPBX" class="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" aria-label="Discord">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.963.074.074 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.962a.077.077 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-300 dark:border-gray-800 text-center">
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                    Proudly sponsored by <a href="https://ladybugmem.ai" class="text-red-600 dark:text-red-400 hover:underline font-medium">Ladybug Memory</a>
+                </p>
+                <p class="text-gray-500 dark:text-gray-500 text-xs">&copy; 2026 LadybugDB. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Install command handling
+        const commands = {
+            curl: 'curl -fsSL https://install.ladybugdb.com | sh',
+            brew: 'brew install ladybug'
+        };
+
+        const installCommand = document.getElementById('installCommand');
+        const copyBtn = document.getElementById('copyBtn');
+        const installSelect = document.getElementById('installSelect');
+
+        installSelect.addEventListener('change', () => {
+            installCommand.textContent = commands[installSelect.value];
+        });
+
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(installCommand.textContent).then(() => {
+                copyBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+                }, 2000);
+            });
+        });
+
+        // Theme handling
+        const themeToggle = document.getElementById('themeToggle');
+        const mobileThemeToggle = document.getElementById('mobileThemeToggle');
+        const html = document.documentElement;
+
+        function toggleTheme() {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+        mobileThemeToggle.addEventListener('click', toggleTheme);
+
+        // Check for saved theme or system preference
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+        }
+
+        // Mobile menu
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

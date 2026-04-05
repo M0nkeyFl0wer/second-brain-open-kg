@@ -6,12 +6,12 @@
 
 ### Built With
 
-<a href="https://github.com/LadybugDB/ladybug"><img src="https://ladybugdb.com/img/logo.svg" alt="LadybugDB" height="40"></a>&nbsp;&nbsp;
-<a href="https://github.com/networkx/networkx"><img src="https://networkx.org/documentation/stable/_static/networkx_logo.svg" alt="NetworkX" height="40"></a>&nbsp;&nbsp;
-<a href="https://github.com/ollama/ollama"><img src="https://ollama.com/public/ollama.png" alt="Ollama" height="40"></a>&nbsp;&nbsp;
-<a href="https://github.com/explosion/spaCy"><img src="https://img.shields.io/badge/spaCy-NLP-09a3d5?style=flat-square" alt="spaCy" height="22"></a>&nbsp;&nbsp;
-<a href="https://github.com/visjs/vis-network"><img src="https://img.shields.io/badge/vis--network-graph_viz-orange?style=flat-square" alt="vis-network" height="22"></a>&nbsp;&nbsp;
-<a href="https://github.com/scikit-tda/ripser.py"><img src="https://img.shields.io/badge/Ripser-topology-purple?style=flat-square" alt="Ripser" height="22"></a>
+[![LadybugDB](https://img.shields.io/badge/LadybugDB-0.15.3-ff6b35?style=for-the-badge)](https://github.com/LadybugDB/ladybug)
+[![NetworkX](https://img.shields.io/badge/NetworkX-3.6-2e86c1?style=for-the-badge)](https://github.com/networkx/networkx)
+[![Ollama](https://img.shields.io/badge/Ollama-local_AI-000000?style=for-the-badge)](https://github.com/ollama/ollama)
+[![spaCy](https://img.shields.io/badge/spaCy-NLP-09a3d5?style=for-the-badge)](https://github.com/explosion/spaCy)
+[![vis-network](https://img.shields.io/badge/vis--network-graph_viz-e67e22?style=for-the-badge)](https://github.com/visjs/vis-network)
+[![Ripser](https://img.shields.io/badge/Ripser-topology-8e44ad?style=for-the-badge)](https://github.com/scikit-tda/ripser.py)
 
 ---
 

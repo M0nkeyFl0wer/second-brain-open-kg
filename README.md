@@ -1,19 +1,17 @@
 # second-brain-knowledge-graph-infrastructure 
 
+<img src="static/social-card.png" alt="The Topological Second Brain: A Full-Stack AI Memory Architecture" width="100%">
+
 A personal knowledge graph that lives on top of your Obsidian vault. Ingest your notes, extract concepts and connections, find hidden links between ideas, and get a daily reflection on what your graph knows. Runs entirely on your machine.
 
 **No cloud required. No accounts. Your thoughts stay yours.**
 
 ### Built With
 
-[![LadybugDB](https://img.shields.io/badge/LadybugDB-0.15.3-orange?style=flat-square&logo=data:image/svg+xml;base64,)](https://ladybugdb.com)
-[![NetworkX](https://img.shields.io/badge/NetworkX-3.6-blue?style=flat-square)](https://networkx.org)
-[![Ollama](https://img.shields.io/badge/Ollama-local_AI-black?style=flat-square)](https://ollama.com)
-[![spaCy](https://img.shields.io/badge/spaCy-NLP-09a3d5?style=flat-square)](https://spacy.io)
-
-<a href="https://ladybugdb.com"><img src="https://ladybugdb.com/img/logo.svg" alt="LadybugDB" height="50"></a>&nbsp;&nbsp;&nbsp;
-<a href="https://networkx.org"><img src="https://networkx.org/documentation/stable/_static/networkx_logo.svg" alt="NetworkX" height="50"></a>&nbsp;&nbsp;&nbsp;
-<a href="https://ollama.com"><img src="https://ollama.com/public/ollama.png" alt="Ollama" height="50"></a>
+[![LadybugDB](https://img.shields.io/badge/LadybugDB-0.15.3-ff6b35?style=for-the-badge)](https://github.com/LadybugDB/ladybug)
+[![NetworkX](https://img.shields.io/badge/NetworkX-3.6-2e86c1?style=for-the-badge)](https://github.com/networkx/networkx)
+[![Ollama](https://img.shields.io/badge/Ollama-local_AI-000000?style=for-the-badge)](https://github.com/ollama/ollama)
+[![spaCy](https://img.shields.io/badge/spaCy-NLP-09a3d5?style=for-the-badge)](https://github.com/explosion/spaCy)
 
 > ### Why This Exists
 >
