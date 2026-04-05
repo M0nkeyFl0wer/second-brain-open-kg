@@ -6,6 +6,7 @@ LadybugDB is a KuzuDB fork — same Cypher dialect, same embedded architecture.
 Bulk ingestion uses COPY FROM Parquet (25x faster than iterative MERGE).
 Vector search uses native FLOAT[768] columns + array_cosine_similarity.
 """
+import logging
 import real_ladybug as lb
 import time
 import tempfile
@@ -13,31 +14,37 @@ from pathlib import Path
 from .ontology import Ontology
 from . import config
 
+logger = logging.getLogger(__name__)
+
 
 class Graph:
     """Knowledge graph backed by LadybugDB."""
 
-    def __init__(self, graph_dir: Path = None, ontology: Ontology = None):
+    def __init__(self, graph_dir: Path = None, ontology: Ontology = None,
+                 read_only: bool = False):
         self.graph_dir = graph_dir or config.GRAPH_DIR
         self.ontology = ontology or Ontology()
+        self.read_only = read_only
         self.db = None
         self.conn = None
         self._open()
-        self._init_schema()
+        if not read_only:
+            self._init_schema()
 
     def _open(self):
         self.graph_dir.parent.mkdir(parents=True, exist_ok=True)
-        self.db = lb.Database(str(self.graph_dir))
+        self.db = lb.Database(str(self.graph_dir), read_only=self.read_only)
         self.conn = lb.Connection(self.db)
 
     def _init_schema(self):
         """Create node and edge tables if they don't exist."""
-        # --- Load extensions ---
+        # --- Load extensions (log failures instead of silently swallowing) ---
         for ext in ("vector", "fts", "algo"):
             try:
                 self.conn.execute(f"INSTALL {ext}; LOAD EXTENSION {ext};")
-            except Exception:
-                pass  # Already loaded or not available
+                logger.debug("Loaded extension: %s", ext)
+            except Exception as e:
+                logger.warning("Extension '%s' not available: %s", ext, e)
 
         # --- Core node tables ---
         self.conn.execute("""
@@ -251,7 +258,7 @@ class Graph:
                  if self.ontology.validate_entity_type(e["entity_type"])]
         rejected = len(entities) - len(valid)
         if rejected > 0:
-            print(f"  Rejected {rejected} entities (type not in ontology)")
+            logger.info("Rejected %d entities (type not in ontology)", rejected)
 
         if not valid:
             return 0
@@ -309,7 +316,7 @@ class Graph:
                  if self.ontology.validate_edge_type(e["edge_type"])]
         rejected = len(edges) - len(valid)
         if rejected > 0:
-            print(f"  Rejected {rejected} edges (type not in ontology)")
+            logger.info("Rejected %d edges (type not in ontology)", rejected)
 
         if not valid:
             return 0

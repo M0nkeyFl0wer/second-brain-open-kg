@@ -60,7 +60,7 @@ def _startup():
     """Initialize Graph and Ontology once when the server boots."""
     global graph, ontology
     ontology = Ontology()
-    graph = Graph(ontology=ontology)
+    graph = Graph(ontology=ontology, read_only=True)
 
 
 @app.on_event("shutdown")

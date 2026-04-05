@@ -55,26 +55,48 @@ mcp = FastMCP("second-brain")
 
 # Lazy-initialized singletons. Created on first tool call so the server
 # process starts fast and the graph directory is only opened when needed.
+# Thread-safe via _init_lock (double-check locking pattern).
+import atexit
+import threading
+
 _graph: Graph | None = None
 _ontology: Ontology | None = None
 _extractor: Extractor | None = None
+_init_lock = threading.Lock()
 
 
 def _init() -> tuple[Graph, Ontology, Extractor]:
-    """Initialize (or return cached) Graph, Ontology, and Extractor."""
+    """Initialize (or return cached) Graph, Ontology, and Extractor.
+    Thread-safe — uses double-check locking to avoid races on first call."""
     global _graph, _ontology, _extractor
 
-    if _graph is None:
-        _ontology = Ontology()
-        _graph = Graph(ontology=_ontology)
-        _extractor = Extractor(_ontology)
-        logger.info(
-            "Initialized graph (%d entities, %d edges)",
-            _graph.entity_count(),
-            _graph.edge_count(),
-        )
+    if _graph is not None:
+        return _graph, _ontology, _extractor  # type: ignore[return-value]
+
+    with _init_lock:
+        if _graph is None:  # double-check after acquiring lock
+            _ontology = Ontology()
+            _graph = Graph(ontology=_ontology)
+            _extractor = Extractor(_ontology)
+            logger.info(
+                "Initialized graph (%d entities, %d edges)",
+                _graph.entity_count(),
+                _graph.edge_count(),
+            )
 
     return _graph, _ontology, _extractor  # type: ignore[return-value]
+
+
+def _shutdown():
+    """Clean up graph connection on process exit."""
+    global _graph
+    if _graph is not None:
+        _graph.close()
+        _graph = None
+        logger.info("Graph connection closed")
+
+
+atexit.register(_shutdown)
 
 
 # ===========================================================================

@@ -7,6 +7,7 @@ Phase 3: LLM (Ollama or remote) — semantic, identifies relationships and types
 Every entity validates against ONTOLOGY.md at extraction time.
 Rejected types are counted for ontology improvement feedback.
 """
+import logging
 import re
 import json
 import hashlib
@@ -14,6 +15,8 @@ import time
 import spacy
 from .ontology import Ontology
 from . import config
+
+logger = logging.getLogger(__name__)
 
 
 def generate_entity_id(label: str, entity_type: str, source_url: str) -> str:
@@ -159,7 +162,7 @@ Note to analyze:
             )
             result = json.loads(response["message"]["content"])
         except Exception as e:
-            print(f"  LLM extraction failed: {e}")
+            logger.warning("LLM extraction failed: %s", e)
             return {"entities": [], "edges": []}
 
         # Convert LLM output to our format
@@ -199,7 +202,7 @@ Note to analyze:
     def _phase3_llm_remote(self, text: str, source_url: str,
                            existing_entities: list, now: int) -> dict:
         """LLM extraction via remote API (hybrid/remote mode)."""
-        print("  Remote extraction not yet configured, falling back to local")
+        logger.info("Remote extraction not yet configured, falling back to local")
         return self._phase3_llm_local(text, source_url, existing_entities, now)
 
     def _make_entity(self, label: str, entity_type: str, description: str,
