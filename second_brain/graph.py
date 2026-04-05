@@ -30,6 +30,9 @@ class Graph:
         self._open()
         if not read_only:
             self._init_schema()
+            # Run schema migrations if needed (adds columns, etc.)
+            from .migrations import ensure_schema_version
+            ensure_schema_version(self.conn)
 
     def _open(self):
         self.graph_dir.parent.mkdir(parents=True, exist_ok=True)

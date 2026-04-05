@@ -86,12 +86,19 @@ def main():
             ci = type_dist[0]["cnt"] / entities
             ci_dominant = type_dist[0]["type"]
 
-        # Hidden connections count
+        # Hidden connections count — try cached value first (fast),
+        # fall back to live scan (slow, O(n*k) for n entities)
         hidden_count = 0
         try:
-            from second_brain.hidden_connections import find_hidden_connections
-            hidden = find_hidden_connections(graph, top_n=100)
-            hidden_count = len(hidden)
+            r = graph.query(
+                "MATCH (m:_SchemaMeta {id: 'hidden_count'}) RETURN m.version AS cnt")
+            if r:
+                hidden_count = r[0]["cnt"]
+            else:
+                # No cache — run live scan (slow on large graphs)
+                from second_brain.hidden_connections import find_hidden_connections
+                hidden = find_hidden_connections(graph, top_n=100)
+                hidden_count = len(hidden)
         except Exception:
             pass
 

@@ -115,9 +115,18 @@ def main():
             all_entities.extend(result["entities"])
             all_edges.extend(result["edges"])
 
+        # Deduplicate entities across notes — same ID from different notes
+        # should keep the highest-confidence version
+        seen = {}
+        for e in all_entities:
+            eid = e["id"]
+            if eid not in seen or e.get("confidence", 0) > seen[eid].get("confidence", 0):
+                seen[eid] = e
+        all_entities = list(seen.values())
+
         # Bulk load entities
         if all_entities:
-            print(f"\nBulk loading {len(all_entities)} entities...")
+            print(f"\nBulk loading {len(all_entities)} entities (after dedup)...")
             loaded = graph.bulk_add_entities(all_entities)
             print(f"  Loaded: {loaded}")
 
