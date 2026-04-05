@@ -40,127 +40,128 @@ def main():
 
     ontology = Ontology()
     graph = Graph(ontology=ontology)
-    extractor = Extractor(ontology)
+    try:
+        extractor = Extractor(ontology)
 
-    # Check which notes are already ingested
-    if not args.force:
-        existing = set()
-        for doc in graph.query("MATCH (d:Document) RETURN d.id AS id"):
-            existing.add(doc["id"])
-        new_notes = [n for n in notes if n["doc_id"] not in existing]
-        if len(new_notes) < len(notes):
-            print(f"Skipping {len(notes) - len(new_notes)} already-ingested notes.")
-        notes = new_notes
+        # Check which notes are already ingested
+        if not args.force:
+            existing = set()
+            for doc in graph.query("MATCH (d:Document) RETURN d.id AS id"):
+                existing.add(doc["id"])
+            new_notes = [n for n in notes if n["doc_id"] not in existing]
+            if len(new_notes) < len(notes):
+                print(f"Skipping {len(notes) - len(new_notes)} already-ingested notes.")
+            notes = new_notes
 
-    if not notes:
-        print("All notes already ingested. Use --force to re-ingest.")
-        return
+        if not notes:
+            print("All notes already ingested. Use --force to re-ingest.")
+            return
 
-    all_entities = []
-    all_edges = []
-    t_start = time.time()
+        all_entities = []
+        all_edges = []
+        t_start = time.time()
 
-    for i, note in enumerate(notes, 1):
-        print(f"[{i}/{len(notes)}] {note['relative_path']}")
+        for i, note in enumerate(notes, 1):
+            print(f"[{i}/{len(notes)}] {note['relative_path']}")
 
-        # Register document
-        graph.add_document(note["doc_id"], note["path"], note["title"])
+            # Register document
+            graph.add_document(note["doc_id"], note["path"], note["title"])
 
-        # Run extraction on body text
-        result = extractor.extract_from_text(
-            note["body"], source_url=note["path"], doc_id=note["doc_id"])
-        print(f"  Extracted: {len(result['entities'])} entities, "
-              f"{len(result['edges'])} edges")
+            # Run extraction on body text
+            result = extractor.extract_from_text(
+                note["body"], source_url=note["path"], doc_id=note["doc_id"])
+            print(f"  Extracted: {len(result['entities'])} entities, "
+                  f"{len(result['edges'])} edges")
 
-        # Store wikilinks as ASSOCIATED_WITH edges between linked notes
-        # (links are note-title → note-title, resolved by label match)
-        if note["wikilinks"]:
-            print(f"  Wikilinks: {len(note['wikilinks'])}")
-            for link_target in note["wikilinks"]:
-                # Create a concept entity for the linked note if not yet extracted
-                link_id = f"wikilink_{__import__('hashlib').sha256(link_target.encode()).hexdigest()[:16]}"
-                result["entities"].append({
-                    "id": link_id,
+            # Store wikilinks as ASSOCIATED_WITH edges between linked notes
+            # (links are note-title → note-title, resolved by label match)
+            if note["wikilinks"]:
+                print(f"  Wikilinks: {len(note['wikilinks'])}")
+                for link_target in note["wikilinks"]:
+                    # Create a concept entity for the linked note if not yet extracted
+                    link_id = f"wikilink_{__import__('hashlib').sha256(link_target.encode()).hexdigest()[:16]}"
+                    result["entities"].append({
+                        "id": link_id,
+                        "entity_type": "concept",
+                        "label": link_target,
+                        "description": f"Linked note: [[{link_target}]]",
+                        "confidence": 0.8,
+                        "source_url": note["path"],
+                        "provenance": "obsidian_wikilink",
+                    })
+                    # Edge from this note's doc to the linked concept
+                    result["edges"].append({
+                        "source_id": note["doc_id"],
+                        "target_id": link_id,
+                        "edge_type": "ASSOCIATED_WITH",
+                        "confidence": 0.9,
+                        "source_url": note["path"],
+                        "provenance": "obsidian_wikilink",
+                    })
+
+            # Add tags as entities
+            for tag in note["tags"]:
+                tag_entity = {
+                    "id": f"tag_{tag}",
                     "entity_type": "concept",
-                    "label": link_target,
-                    "description": f"Linked note: [[{link_target}]]",
+                    "label": tag,
+                    "description": f"Tag: #{tag}",
                     "confidence": 0.8,
                     "source_url": note["path"],
-                    "provenance": "obsidian_wikilink",
-                })
-                # Edge from this note's doc to the linked concept
-                result["edges"].append({
-                    "source_id": note["doc_id"],
-                    "target_id": link_id,
-                    "edge_type": "ASSOCIATED_WITH",
-                    "confidence": 0.9,
-                    "source_url": note["path"],
-                    "provenance": "obsidian_wikilink",
-                })
+                    "provenance": "obsidian_tag",
+                }
+                result["entities"].append(tag_entity)
 
-        # Add tags as entities
-        for tag in note["tags"]:
-            tag_entity = {
-                "id": f"tag_{tag}",
-                "entity_type": "concept",
-                "label": tag,
-                "description": f"Tag: #{tag}",
-                "confidence": 0.8,
-                "source_url": note["path"],
-                "provenance": "obsidian_tag",
-            }
-            result["entities"].append(tag_entity)
+            all_entities.extend(result["entities"])
+            all_edges.extend(result["edges"])
 
-        all_entities.extend(result["entities"])
-        all_edges.extend(result["edges"])
+        # Bulk load entities
+        if all_entities:
+            print(f"\nBulk loading {len(all_entities)} entities...")
+            loaded = graph.bulk_add_entities(all_entities)
+            print(f"  Loaded: {loaded}")
 
-    # Bulk load entities
-    if all_entities:
-        print(f"\nBulk loading {len(all_entities)} entities...")
-        loaded = graph.bulk_add_entities(all_entities)
-        print(f"  Loaded: {loaded}")
+            # Embed entity descriptions
+            print("Computing entity embeddings...")
+            for entity in all_entities:
+                embed_str = f"{entity['label']}: {entity.get('description', '')}"
+                try:
+                    emb = embed_text(embed_str)
+                    graph.set_embedding(entity["id"], emb)
+                except Exception as e:
+                    print(f"  Embedding failed for {entity['label']}: {e}")
 
-        # Embed entity descriptions
-        print("Computing entity embeddings...")
-        for entity in all_entities:
-            embed_str = f"{entity['label']}: {entity.get('description', '')}"
-            try:
-                emb = embed_text(embed_str)
-                graph.set_embedding(entity["id"], emb)
-            except Exception as e:
-                print(f"  Embedding failed for {entity['label']}: {e}")
+        if all_edges:
+            print(f"Loading {len(all_edges)} edges...")
+            loaded = graph.bulk_add_edges(all_edges)
+            print(f"  Loaded: {loaded}")
 
-    if all_edges:
-        print(f"Loading {len(all_edges)} edges...")
-        loaded = graph.bulk_add_edges(all_edges)
-        print(f"  Loaded: {loaded}")
+        # Rebuild HNSW vector indexes after bulk embedding
+        print("Rebuilding vector indexes...")
+        graph.rebuild_vector_indexes()
 
-    # Rebuild HNSW vector indexes after bulk embedding
-    print("Rebuilding vector indexes...")
-    graph.rebuild_vector_indexes()
+        # Summary
+        elapsed = time.time() - t_start
+        print(f"\n{'=' * 50}")
+        print(f"Ingestion complete in {elapsed:.1f}s.")
+        print(f"  Notes processed:     {len(notes)}")
+        print(f"  Total entities:      {graph.entity_count()}")
+        print(f"  Total edges:         {graph.edge_count()}")
+        print(f"  Total documents:     {graph.document_count()}")
+        print(f"\nNext steps:")
+        print(f"  Search:    python scripts/search_cli.py -q 'your query'")
+        print(f"  Analyze:   python scripts/run_analysis.py")
+        print(f"  Reflect:   python scripts/daily_briefing.py")
 
-    # Summary
-    elapsed = time.time() - t_start
-    print(f"\n{'=' * 50}")
-    print(f"Ingestion complete in {elapsed:.1f}s.")
-    print(f"  Notes processed:     {len(notes)}")
-    print(f"  Total entities:      {graph.entity_count()}")
-    print(f"  Total edges:         {graph.edge_count()}")
-    print(f"  Total documents:     {graph.document_count()}")
-    print(f"\nNext steps:")
-    print(f"  Search:    python scripts/search_cli.py -q 'your query'")
-    print(f"  Analyze:   python scripts/run_analysis.py")
-    print(f"  Reflect:   python scripts/daily_briefing.py")
-
-    # Ontology rejections
-    rejections = ontology.get_rejection_counts()
-    if rejections:
-        print(f"\nOntology rejections:")
-        for type_name, count in list(rejections.items())[:10]:
-            print(f"  {type_name}: {count}")
-        print(f"  Tip: Consider adding frequently rejected types to ONTOLOGY.md")
-
-    graph.close()
+        # Ontology rejections
+        rejections = ontology.get_rejection_counts()
+        if rejections:
+            print(f"\nOntology rejections:")
+            for type_name, count in list(rejections.items())[:10]:
+                print(f"  {type_name}: {count}")
+            print(f"  Tip: Consider adding frequently rejected types to ONTOLOGY.md")
+    finally:
+        graph.close()
 
 
 if __name__ == "__main__":

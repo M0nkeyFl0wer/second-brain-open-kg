@@ -145,50 +145,49 @@ def main():
         parser.error("Provide --query or --path")
 
     graph = Graph()
+    try:
+        if args.path:
+            source, target = args.path
+            print(f"Finding paths: {source} → {target}\n")
+            paths = graph.find_path(source, target)
+            display_paths(paths)
+            return
 
-    if args.path:
-        source, target = args.path
-        print(f"Finding paths: {source} → {target}\n")
-        paths = graph.find_path(source, target)
-        display_paths(paths)
-        graph.close()
-        return
+        if args.mode == "hidden":
+            # Hidden connections: find what's semantically close but not linked
+            from second_brain.embed import embed_text
+            query_emb = embed_text(args.query)
+            # Find the entity closest to the query
+            seeds = graph.vector_search(query_emb, limit=1)
+            if seeds:
+                try:
+                    from second_brain.hidden_connections import find_hidden_for_entity
+                    results = find_hidden_for_entity(graph, seeds[0]["id"])
+                    print(f"Hidden connections for: {seeds[0]['label']}\n")
+                    for r in results[:args.limit]:
+                        rtype = r.get("target_type", r.get("type", ""))
+                        rlabel = r.get("target_label", r.get("label", ""))
+                        print(f"  [{rtype:15}] {rlabel}")
+                        print(f"                    distance: {r['distance']:.3f} | unlinked")
+                except ImportError:
+                    print("Hidden connections module not available.")
+                    results = []
+            else:
+                print("No entities found matching query.")
+            return
 
-    if args.mode == "hidden":
-        # Hidden connections: find what's semantically close but not linked
-        from second_brain.embed import embed_text
-        query_emb = embed_text(args.query)
-        # Find the entity closest to the query
-        seeds = graph.vector_search(query_emb, limit=1)
-        if seeds:
-            try:
-                from second_brain.hidden_connections import find_hidden_for_entity
-                results = find_hidden_for_entity(graph, seeds[0]["id"])
-                print(f"Hidden connections for: {seeds[0]['label']}\n")
-                for r in results[:args.limit]:
-                    rtype = r.get("target_type", r.get("type", ""))
-                    rlabel = r.get("target_label", r.get("label", ""))
-                    print(f"  [{rtype:15}] {rlabel}")
-                    print(f"                    distance: {r['distance']:.3f} | unlinked")
-            except ImportError:
-                print("Hidden connections module not available.")
-                results = []
+        if args.mode == "keyword":
+            results = search_keyword(graph, args.query, args.type, args.limit)
+        elif args.mode == "semantic":
+            results = search_semantic(graph, args.query, args.limit)
+        elif args.mode == "hybrid":
+            results = search_hybrid(graph, args.query, args.type, args.limit)
         else:
-            print("No entities found matching query.")
+            results = []
+
+        display_results(results, args.mode)
+    finally:
         graph.close()
-        return
-
-    if args.mode == "keyword":
-        results = search_keyword(graph, args.query, args.type, args.limit)
-    elif args.mode == "semantic":
-        results = search_semantic(graph, args.query, args.limit)
-    elif args.mode == "hybrid":
-        results = search_hybrid(graph, args.query, args.type, args.limit)
-    else:
-        results = []
-
-    display_results(results, args.mode)
-    graph.close()
 
 
 if __name__ == "__main__":

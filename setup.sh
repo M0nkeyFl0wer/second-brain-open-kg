@@ -39,7 +39,7 @@ if command -v ollama &> /dev/null; then
     echo "Ollama found. Pulling embedding model..."
     ollama pull nomic-embed-text
     echo "Pulling extraction model..."
-    ollama pull mistral
+    ollama pull llama3.2:3b
     echo "Models ready."
 else
     echo "WARNING: Ollama not found."

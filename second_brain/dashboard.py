@@ -77,7 +77,7 @@ def _shutdown():
 # ---------------------------------------------------------------------------
 
 # Resolve the static directory relative to this file's location.
-_STATIC_DIR = Path(__file__).parent / "static"
+_STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 @app.get("/", include_in_schema=False)
@@ -668,7 +668,7 @@ def api_path(source: str = "", target: str = "", max_hops: int = 4):
     max_hops = max(1, min(6, max_hops))
 
     try:
-        paths = _graph.find_path(source, target, max_hops=max_hops)
+        paths = graph.find_path(source, target, max_hops=max_hops)
 
         # Enrich each path with per-hop detail for animation
         enriched = []

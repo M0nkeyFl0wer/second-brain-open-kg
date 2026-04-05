@@ -96,92 +96,97 @@ def main():
 
     ontology = Ontology()
     graph = Graph(ontology=ontology)
-    extractor = Extractor(ontology)
+    try:
+        extractor = Extractor(ontology)
 
-    all_entities = []
-    all_edges = []
-    total_chunks = 0
-    t_start = time.time()
+        all_entities = []
+        all_edges = []
+        total_chunks = 0
+        t_start = time.time()
 
-    for i, filepath in enumerate(supported, 1):
-        print(f"[{i}/{len(supported)}] {filepath.name}")
+        for i, filepath in enumerate(supported, 1):
+            print(f"[{i}/{len(supported)}] {filepath.name}")
 
-        text = read_document(filepath)
-        if not text.strip():
-            print(f"  Empty or unreadable, skipping.")
-            continue
+            text = read_document(filepath)
+            if not text.strip():
+                print(f"  Empty or unreadable, skipping.")
+                continue
 
-        doc_id = hashlib.sha256(str(filepath).encode()).hexdigest()[:16]
-        source_url = str(filepath)
+            doc_id = hashlib.sha256(str(filepath).encode()).hexdigest()[:16]
+            source_url = str(filepath)
 
-        # Register document
-        graph.add_document(doc_id, str(filepath), filepath.stem)
+            # Register document
+            graph.add_document(doc_id, str(filepath), filepath.stem)
 
-        # Extract entities and relationships
-        result = extractor.extract_from_text(
-            text, source_url=source_url, doc_id=doc_id)
-        print(f"  Extracted: {len(result['entities'])} entities, "
-              f"{len(result['edges'])} edges")
+            # Extract entities and relationships
+            result = extractor.extract_from_text(
+                text, source_url=source_url, doc_id=doc_id)
+            print(f"  Extracted: {len(result['entities'])} entities, "
+                  f"{len(result['edges'])} edges")
 
-        # Compute embeddings for chunks
-        chunks = chunk_text(text)
-        if chunks:
-            embeddings = embed_batch(chunks)
-            total_chunks += len(chunks)
-            print(f"  Embedded: {len(chunks)} chunks")
+            # Compute embeddings for chunks
+            chunks = chunk_text(text)
+            if chunks:
+                embeddings = embed_batch(chunks)
+                total_chunks += len(chunks)
+                print(f"  Embedded: {len(chunks)} chunks")
 
-            # Store chunk embeddings on the entities they mention
-            # (For now, embed entity descriptions directly after bulk load)
+                # Store chunk embeddings on the entities they mention
+                # (For now, embed entity descriptions directly after bulk load)
 
-        all_entities.extend(result["entities"])
-        all_edges.extend(result["edges"])
+            all_entities.extend(result["entities"])
+            all_edges.extend(result["edges"])
 
-    # Bulk load entities
-    if all_entities:
-        print(f"\nBulk loading {len(all_entities)} entities...")
-        loaded = graph.bulk_add_entities(all_entities)
-        print(f"  Loaded: {loaded}")
+        # Bulk load entities
+        if all_entities:
+            print(f"\nBulk loading {len(all_entities)} entities...")
+            loaded = graph.bulk_add_entities(all_entities)
+            print(f"  Loaded: {loaded}")
 
-        # Embed entity descriptions and store vectors
-        print(f"Computing entity embeddings...")
-        for entity in all_entities:
-            embed_text_str = f"{entity['label']}: {entity.get('description', '')}"
-            try:
-                emb = embed_text(embed_text_str)
-                graph.set_embedding(entity["id"], emb)
-            except Exception as e:
-                print(f"  Embedding failed for {entity['label']}: {e}")
-    else:
-        print("\nNo entities extracted.")
+            # Embed entity descriptions and store vectors
+            print(f"Computing entity embeddings...")
+            for entity in all_entities:
+                embed_text_str = f"{entity['label']}: {entity.get('description', '')}"
+                try:
+                    emb = embed_text(embed_text_str)
+                    graph.set_embedding(entity["id"], emb)
+                except Exception as e:
+                    print(f"  Embedding failed for {entity['label']}: {e}")
+        else:
+            print("\nNo entities extracted.")
 
-    if all_edges:
-        print(f"Loading {len(all_edges)} edges...")
-        loaded = graph.bulk_add_edges(all_edges)
-        print(f"  Loaded: {loaded}")
+        if all_edges:
+            print(f"Loading {len(all_edges)} edges...")
+            loaded = graph.bulk_add_edges(all_edges)
+            print(f"  Loaded: {loaded}")
 
-    # Summary
-    elapsed = time.time() - t_start
-    print(f"\n{'=' * 50}")
-    print(f"Ingestion complete in {elapsed:.1f}s.")
-    print(f"  Documents processed: {len(supported)}")
-    print(f"  Chunks embedded:     {total_chunks}")
-    print(f"  Total entities:      {graph.entity_count()}")
-    print(f"  Total edges:         {graph.edge_count()}")
-    print(f"  Total documents:     {graph.document_count()}")
-    print(f"\nNext steps:")
-    print(f"  Search:    python scripts/search_cli.py -q 'your query'")
-    print(f"  Analyze:   python scripts/run_analysis.py")
-    print(f"  Briefing:  python scripts/daily_briefing.py")
+        # Rebuild HNSW vector indexes after bulk loading
+        print("Rebuilding vector indexes...")
+        graph.rebuild_vector_indexes()
 
-    # Show ontology rejections
-    rejections = ontology.get_rejection_counts()
-    if rejections:
-        print(f"\nOntology rejections (types not in ONTOLOGY.md):")
-        for type_name, count in list(rejections.items())[:10]:
-            print(f"  {type_name}: {count} rejections")
-        print(f"  Tip: Consider adding frequently rejected types to ONTOLOGY.md")
+        # Summary
+        elapsed = time.time() - t_start
+        print(f"\n{'=' * 50}")
+        print(f"Ingestion complete in {elapsed:.1f}s.")
+        print(f"  Documents processed: {len(supported)}")
+        print(f"  Chunks embedded:     {total_chunks}")
+        print(f"  Total entities:      {graph.entity_count()}")
+        print(f"  Total edges:         {graph.edge_count()}")
+        print(f"  Total documents:     {graph.document_count()}")
+        print(f"\nNext steps:")
+        print(f"  Search:    python scripts/search_cli.py -q 'your query'")
+        print(f"  Analyze:   python scripts/run_analysis.py")
+        print(f"  Briefing:  python scripts/daily_briefing.py")
 
-    graph.close()
+        # Show ontology rejections
+        rejections = ontology.get_rejection_counts()
+        if rejections:
+            print(f"\nOntology rejections (types not in ONTOLOGY.md):")
+            for type_name, count in list(rejections.items())[:10]:
+                print(f"  {type_name}: {count} rejections")
+            print(f"  Tip: Consider adding frequently rejected types to ONTOLOGY.md")
+    finally:
+        graph.close()
 
 
 if __name__ == "__main__":

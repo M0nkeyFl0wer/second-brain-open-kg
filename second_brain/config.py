@@ -4,18 +4,23 @@ Edit this file to match your setup. Defaults are fully local — no cloud needed
 """
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 # =============================================================================
 # PATHS
 # =============================================================================
 
 # Where the graph database lives (LadybugDB directory)
-GRAPH_DIR = Path("data/graph.lbug")
+GRAPH_DIR = _PROJECT_ROOT / "data" / "graph.lbug"
 
 # Path to your Obsidian vault (required for vault ingestion)
 VAULT_PATH = ""  # e.g., "~/obsidian-vault" or "~/Documents/SecondBrain"
 
 # Where daily reflections are written
-BRIEFING_DIR = Path("reflections")
+BRIEFING_DIR = _PROJECT_ROOT / "reflections"
+
+# Where documents to ingest are placed
+INGEST_DIR = _PROJECT_ROOT / "ingest"
 
 # Directories to skip when scanning the vault
 VAULT_IGNORE_DIRS = {".obsidian", ".trash", ".git", "templates", "node_modules"}

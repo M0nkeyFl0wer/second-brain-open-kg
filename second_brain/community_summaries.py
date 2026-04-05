@@ -78,6 +78,12 @@ def compute_community_summaries(
     _ensure_algo_extension(graph)
 
     # ------------------------------------------------------------------
+    # 0. Clear stale CommunityMeta nodes before recomputing
+    # ------------------------------------------------------------------
+    graph.conn.execute("MATCH (c:CommunityMeta) DETACH DELETE c")
+    logger.info("Cleared existing CommunityMeta nodes")
+
+    # ------------------------------------------------------------------
     # 1. Create projected graph
     # ------------------------------------------------------------------
     proj_name = "PKG"
@@ -92,87 +98,85 @@ def compute_community_summaries(
     )
 
     # ------------------------------------------------------------------
-    # 2. Run Louvain community detection
+    # 2-4. Run Louvain, process communities, and ensure projected graph cleanup
     # ------------------------------------------------------------------
-    logger.info("Running native Louvain community detection...")
-    raw_communities = graph.query(
-        f"CALL louvain('{proj_name}') "
-        "RETURN louvain_id, collect(node.id) AS member_ids, count(*) AS size"
-    )
-
-    # Filter by minimum size
-    communities = [
-        c for c in raw_communities
-        if c["size"] >= min_community_size
-    ]
-    logger.info(
-        "Louvain found %d communities total, %d with size >= %d",
-        len(raw_communities), len(communities), min_community_size,
-    )
-
-    # ------------------------------------------------------------------
-    # 3. For each qualifying community, build summary and store
-    # ------------------------------------------------------------------
-    now = int(time.time())
     stored: list[dict] = []
-
-    for comm in communities:
-        comm_id: int = comm["louvain_id"]
-        member_ids: list[str] = comm["member_ids"]
-        size: int = comm["size"]
-        node_id = f"community_{comm_id}"
-
-        # 3a. Get top-5 entities by degree within this community.
-        top_entities = _top_entities_by_degree(graph, member_ids, top_n=5)
-
-        # 3b. Build a human-readable summary from entity labels + descriptions.
-        top_labels = [e["label"] for e in top_entities]
-        top_entities_str = ", ".join(top_labels)
-
-        summary = _build_summary_text(top_entities, size)
-
-        # 3c. Embed the summary.
-        embedding = embed_text(summary)
-
-        # 3d. MERGE CommunityMeta node.  HNSW indexes are NOT active yet,
-        #     so SET on the embedding column is safe here.
-        graph.conn.execute(
-            """
-            MERGE (c:CommunityMeta {id: $id})
-            SET c.community_id = $cid,
-                c.size         = $sz,
-                c.summary      = $summary,
-                c.top_entities = $top_ents,
-                c.computed_at  = $now,
-                c.embedding    = $emb
-            """,
-            parameters={
-                "id": node_id,
-                "cid": comm_id,
-                "sz": size,
-                "summary": summary,
-                "top_ents": top_entities_str,
-                "now": now,
-                "emb": embedding,
-            },
+    try:
+        # 2. Run Louvain community detection
+        logger.info("Running native Louvain community detection...")
+        raw_communities = graph.query(
+            f"CALL louvain('{proj_name}') "
+            "RETURN louvain_id, collect(node.id) AS member_ids, count(*) AS size"
         )
 
-        stored.append({
-            "id": node_id,
-            "community_id": comm_id,
-            "size": size,
-            "top_entities": top_entities_str,
-            "summary": summary,
-        })
-        logger.debug("Stored community %s (size=%d): %s", node_id, size, top_entities_str)
+        # Filter by minimum size
+        communities = [
+            c for c in raw_communities
+            if c["size"] >= min_community_size
+        ]
+        logger.info(
+            "Louvain found %d communities total, %d with size >= %d",
+            len(raw_communities), len(communities), min_community_size,
+        )
 
-    # ------------------------------------------------------------------
-    # 4. Drop the projected graph (free session-scoped memory)
-    # ------------------------------------------------------------------
-    try:
-        graph.conn.execute(f"CALL DROP_PROJECTED_GRAPH('{proj_name}')")
-    except Exception:
-        logger.warning("Could not drop projected graph '%s'", proj_name)
+        # 3. For each qualifying community, build summary and store
+        now = int(time.time())
+
+        for comm in communities:
+            comm_id: int = comm["louvain_id"]
+            member_ids: list[str] = comm["member_ids"]
+            size: int = comm["size"]
+            node_id = f"community_{comm_id}"
+
+            # 3a. Get top-5 entities by degree within this community.
+            top_entities = _top_entities_by_degree(graph, member_ids, top_n=5)
+
+            # 3b. Build a human-readable summary from entity labels + descriptions.
+            top_labels = [e["label"] for e in top_entities]
+            top_entities_str = ", ".join(top_labels)
+
+            summary = _build_summary_text(top_entities, size)
+
+            # 3c. Embed the summary.
+            embedding = embed_text(summary)
+
+            # 3d. MERGE CommunityMeta node.  HNSW indexes are NOT active yet,
+            #     so SET on the embedding column is safe here.
+            graph.conn.execute(
+                """
+                MERGE (c:CommunityMeta {id: $id})
+                SET c.community_id = $cid,
+                    c.size         = $sz,
+                    c.summary      = $summary,
+                    c.top_entities = $top_ents,
+                    c.computed_at  = $now,
+                    c.embedding    = $emb
+                """,
+                parameters={
+                    "id": node_id,
+                    "cid": comm_id,
+                    "sz": size,
+                    "summary": summary,
+                    "top_ents": top_entities_str,
+                    "now": now,
+                    "emb": embedding,
+                },
+            )
+
+            stored.append({
+                "id": node_id,
+                "community_id": comm_id,
+                "size": size,
+                "top_entities": top_entities_str,
+                "summary": summary,
+            })
+            logger.debug("Stored community %s (size=%d): %s", node_id, size, top_entities_str)
+    finally:
+        # 4. Drop the projected graph (free session-scoped memory)
+        try:
+            graph.conn.execute(f"CALL DROP_PROJECTED_GRAPH('{proj_name}')")
+        except Exception:
+            logger.warning("Could not drop projected graph '%s'", proj_name)
 
     # ------------------------------------------------------------------
     # 5. Rebuild HNSW vector indexes so community summaries are searchable
@@ -278,16 +282,17 @@ def get_community_members(graph: Graph, community_id: int) -> list[dict]:
     )
 
     # Run Louvain and filter to the requested community
-    raw = graph.query(
-        f"CALL louvain('{proj_name}') "
-        "RETURN louvain_id, collect(node.id) AS member_ids "
-    )
-
-    # Drop projection immediately -- we have the data we need
     try:
-        graph.conn.execute(f"CALL DROP_PROJECTED_GRAPH('{proj_name}')")
-    except Exception:
-        pass
+        raw = graph.query(
+            f"CALL louvain('{proj_name}') "
+            "RETURN louvain_id, collect(node.id) AS member_ids "
+        )
+    finally:
+        # Drop projection immediately -- we have the data we need
+        try:
+            graph.conn.execute(f"CALL DROP_PROJECTED_GRAPH('{proj_name}')")
+        except Exception:
+            logger.warning("Could not drop projected graph '%s'", proj_name)
 
     # Find the matching community
     member_ids: list[str] = []

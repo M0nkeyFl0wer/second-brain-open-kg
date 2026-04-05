@@ -28,7 +28,9 @@ class EdgeType:
 class Ontology:
     """Parsed ontology from ONTOLOGY.md with validation."""
 
-    def __init__(self, ontology_path: str = "ONTOLOGY.md"):
+    def __init__(self, ontology_path: str = None):
+        if ontology_path is None:
+            ontology_path = str(Path(__file__).resolve().parent.parent / "ONTOLOGY.md")
         self.path = Path(ontology_path)
         self.entity_types: dict[str, EntityType] = {}
         self.edge_types: dict[str, EdgeType] = {}
