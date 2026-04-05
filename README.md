@@ -1,4 +1,4 @@
-# open-second-brain
+# second-brain-knowledge-graph-infrastructure 
 
 A personal knowledge graph that lives on top of your Obsidian vault. Ingest your notes, extract concepts and connections, find hidden links between ideas, and get a daily reflection on what your graph knows. Runs entirely on your machine.
 
