@@ -1,6 +1,8 @@
 # feat: Multipass -- a multi-pass to the Mem Palace (3D explorer + eval framework + contradiction detection)
 
-> *"Multipass!"*
+> *"Leeloo Dallas, multipass!"*
+
+A multi-pass to the Mem Palace. Because if anyone's earned the right to name a memory system after a palace, it's the person who literally saved the universe with a multipass.
 
 The palace metaphor is genuinely novel. No other system in the [agentic-memory survey](https://github.com/lhl/agentic-memory/blob/main/ANALYSIS-mempalace.md) uses a spatial/navigational metaphor for memory organization. Wings as domains, halls as edge types, rooms as topics, tunnels as cross-domain connections. It's an ontology expressed as architecture rather than declared in a schema file. That makes it intuitive in a way that configuration files never will be.
 
