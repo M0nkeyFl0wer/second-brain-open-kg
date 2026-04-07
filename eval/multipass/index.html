@@ -3,96 +3,477 @@
 <head>
 <meta charset="utf-8">
 <title>Multipass — 3D Palace Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --void: #080810;
+    --void-glass: rgba(8, 8, 16, 0.88);
+    --amber: #E8723A;
+    --amber-bright: #F5A623;
+    --amber-dim: rgba(232, 114, 58, 0.15);
+    --teal: #2EC4B6;
+    --teal-dim: rgba(46, 196, 182, 0.12);
+    --crimson: #C41E3A;
+    --crimson-glow: rgba(196, 30, 58, 0.4);
+    --parchment: #E8DCC8;
+    --parchment-dim: rgba(232, 220, 200, 0.5);
+    --slate: #4A4A5A;
+    --font-display: 'Rajdhani', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0f; color: #e0e0e0; font-family: 'JetBrains Mono', 'Fira Code', monospace; overflow: hidden; }
-  #graph { width: 100vw; height: 100vh; }
+
+  body {
+    background: var(--void);
+    color: var(--parchment);
+    font-family: var(--font-mono);
+    overflow: hidden;
+  }
+
+  #graph { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; }
+
+  /* ── Landing: The Palace Entrance ─────────────────────── */
+
+  #entrance {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--void);
+  }
+
+  #entrance::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 50%, rgba(232, 114, 58, 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 80% at 30% 60%, rgba(46, 196, 182, 0.04) 0%, transparent 60%);
+    animation: breathe 8s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* Architectural grid lines — subtle palace floor plan hint */
+  #entrance::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(232, 114, 58, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 114, 58, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 20%, transparent 70%);
+  }
+
+  .entrance-content {
+    position: relative; z-index: 1;
+    text-align: center;
+    max-width: 580px;
+    padding: 0 24px;
+  }
+
+  .entrance-title {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 700;
+    letter-spacing: 12px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--amber) 0%, var(--amber-bright) 40%, var(--parchment) 60%, var(--teal) 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: hologram 6s ease-in-out infinite;
+  }
+
+  @keyframes hologram {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .entrance-sub {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    margin-bottom: 48px;
+  }
+
+  .entrance-desc {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--slate);
+    margin-bottom: 36px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .entrance-desc code {
+    color: var(--parchment-dim);
+    background: rgba(255,255,255,0.04);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  .entrance-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .btn-enter {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--void);
+    background: linear-gradient(135deg, var(--amber), var(--amber-bright));
+    border: none;
+    padding: 14px 48px;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .btn-enter::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: sheen 3s ease-in-out infinite;
+  }
+
+  @keyframes sheen {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .btn-enter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(232, 114, 58, 0.4);
+  }
+
+  .btn-secondary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--slate);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 20px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    color: var(--parchment-dim);
+    border-color: rgba(232, 114, 58, 0.3);
+  }
+
+  .entrance-upload {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .entrance-textarea {
+    display: none;
+    width: 100%;
+    max-width: 420px;
+    height: 100px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(232, 114, 58, 0.1);
+    color: var(--parchment-dim);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 10px;
+    border-radius: 2px;
+    resize: vertical;
+    margin-top: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .entrance-textarea:focus {
+    border-color: rgba(232, 114, 58, 0.4);
+  }
+
+  .entrance-textarea.visible { display: block; }
+
+  /* ── HUD: Palace Wayfinding ───────────────────────────── */
 
   #hud {
-    position: fixed; top: 16px; left: 16px; z-index: 10;
-    background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 16px 20px; max-width: 320px;
-    backdrop-filter: blur(12px);
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    background: var(--void-glass);
+    border: 1px solid rgba(232, 114, 58, 0.12);
+    border-radius: 2px;
+    padding: 20px 24px;
+    min-width: 220px;
+    backdrop-filter: blur(16px);
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.6s ease;
   }
-  #hud h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; color: #aaa; margin-bottom: 8px; }
-  #hud .stat { font-size: 12px; color: #666; margin: 2px 0; }
-  #hud .stat b { color: #ccc; }
+
+  #hud.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  #hud .hud-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(232, 114, 58, 0.15);
+  }
+
+  #hud .stat {
+    font-size: 11px;
+    color: var(--slate);
+    margin: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #hud .stat-label {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+
+  #hud .stat-val {
+    color: var(--parchment);
+    font-weight: 500;
+    font-size: 14px;
+    font-family: var(--font-display);
+  }
+
+  #hud .stat-val.warning {
+    color: var(--crimson);
+  }
+
+  /* ── Detail Panel ─────────────────────────────────────── */
 
   #panel {
-    position: fixed; top: 16px; right: 16px; z-index: 10;
-    background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 20px; max-width: 360px; max-height: 80vh;
-    overflow-y: auto; backdrop-filter: blur(12px);
+    position: fixed; top: 20px; right: 20px; z-index: 10;
+    background: var(--void-glass);
+    border: 1px solid rgba(232, 114, 58, 0.12);
+    border-radius: 2px;
+    padding: 24px;
+    max-width: 340px;
+    max-height: 80vh;
+    overflow-y: auto;
+    backdrop-filter: blur(16px);
     display: none;
+    animation: slideIn 0.3s ease;
   }
-  #panel h2 { font-size: 13px; color: #fff; margin-bottom: 8px; }
-  #panel .room-name { font-size: 18px; color: #fff; font-weight: 700; margin-bottom: 12px; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  #panel .close {
+    position: absolute; top: 12px; right: 16px;
+    cursor: pointer; color: var(--slate);
+    font-size: 18px; line-height: 1;
+    transition: color 0.2s;
+  }
+  #panel .close:hover { color: var(--amber); }
+
+  #panel .room-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--parchment);
+    margin-bottom: 12px;
+    padding-right: 24px;
+  }
+
   #panel .wing-tag {
-    display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px;
-    margin: 2px 4px 2px 0; border: 1px solid rgba(255,255,255,0.15);
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 1px;
+    margin: 2px 4px 2px 0;
+    border: 1px solid;
   }
-  #panel .hall-tag { font-size: 11px; color: #888; margin: 4px 0; }
-  #panel .meta { font-size: 11px; color: #555; margin-top: 8px; }
-  #panel .tunnels { margin-top: 12px; }
-  #panel .tunnel-item { font-size: 11px; color: #7a7; margin: 3px 0; cursor: pointer; }
-  #panel .tunnel-item:hover { color: #afa; }
-  #panel .close { position: absolute; top: 8px; right: 12px; cursor: pointer; color: #555; font-size: 16px; }
-  #panel .close:hover { color: #fff; }
+
+  #panel .hall-tag {
+    font-size: 10px;
+    color: var(--slate);
+    margin: 8px 0;
+    font-style: italic;
+  }
+
+  #panel .meta {
+    font-size: 10px;
+    color: var(--slate);
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  #panel .tunnels { margin-top: 16px; }
+  #panel .tunnels h3 {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+
+  #panel .tunnel-item {
+    font-size: 11px;
+    color: var(--parchment-dim);
+    margin: 4px 0;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  #panel .tunnel-item:hover {
+    color: var(--amber);
+    border-left-color: var(--amber);
+    background: var(--amber-dim);
+  }
+
+  /* ── Legend ────────────────────────────────────────────── */
 
   #legend {
-    position: fixed; bottom: 16px; left: 16px; z-index: 10;
-    background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 12px 16px; backdrop-filter: blur(12px);
+    position: fixed; bottom: 20px; left: 20px; z-index: 10;
+    background: var(--void-glass);
+    border: 1px solid rgba(232, 114, 58, 0.08);
+    border-radius: 2px;
+    padding: 14px 18px;
+    backdrop-filter: blur(16px);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.6s ease 0.2s;
   }
-  #legend .item { font-size: 11px; color: #888; margin: 2px 0; display: flex; align-items: center; gap: 8px; }
-  #legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-  #load-area {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;
-    background: rgba(10, 10, 15, 0.95); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px; padding: 40px; text-align: center; max-width: 500px;
+  #legend.visible {
+    opacity: 1;
+    transform: translateY(0);
   }
-  #load-area h2 { font-size: 16px; margin-bottom: 16px; color: #ccc; }
-  #load-area p { font-size: 12px; color: #666; margin-bottom: 20px; line-height: 1.6; }
-  #load-area button {
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    color: #ccc; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-family: inherit;
-    font-size: 12px; margin: 4px;
+
+  #legend .legend-title {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 8px;
   }
-  #load-area button:hover { background: rgba(255,255,255,0.15); color: #fff; }
-  #load-area textarea {
-    width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-    color: #ccc; font-family: inherit; font-size: 11px; padding: 8px; border-radius: 4px;
-    resize: vertical; margin-bottom: 12px;
+
+  #legend .item {
+    font-size: 10px;
+    color: var(--parchment-dim);
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
+
+  #legend .dot {
+    width: 8px; height: 8px;
+    border-radius: 1px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  #legend .dot.octahedron {
+    transform: rotate(45deg);
+    width: 10px; height: 10px;
+  }
+
+  /* ── Scrollbar ────────────────────────────────────────── */
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(232, 114, 58, 0.2); border-radius: 2px; }
+
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<div id="load-area">
-  <h2>MULTIPASS</h2>
-  <p style="font-size:10px; color:#444; margin-bottom:12px;">a multi-pass to the mem palace</p>
-  <p>
-    Paste your palace graph JSON below, or load the demo palace.<br>
-    Generate with: <code>mempalace graph --json > palace.json</code>
-  </p>
-  <textarea id="json-input" placeholder='{"nodes": {...}, "edges": [...]}'></textarea>
-  <br>
-  <button onclick="loadDemo()">Load Demo Palace</button>
-  <button onclick="loadFromInput()">Load JSON</button>
-  <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadFile(event)">
-  <button onclick="document.getElementById('file-input').click()">Load File</button>
+<!-- ── Palace Entrance ──────────────────────────────────── -->
+<div id="entrance">
+  <div class="entrance-content">
+    <div class="entrance-title">Multipass</div>
+    <div class="entrance-sub">multi-hop paths through your memory palace</div>
+
+    <div class="entrance-desc">
+      Walk through your knowledge as architecture. Wings are domains,
+      rooms are topics, tunnels are the paths between them.<br><br>
+      Export with: <code>python export_palace.py --palace-path ~/.mempalace/palace</code>
+    </div>
+
+    <div class="entrance-actions">
+      <button class="btn-enter" onclick="loadDemo()">Enter the Palace</button>
+      <div class="entrance-upload">
+        <button class="btn-secondary" onclick="toggleJsonInput()">Paste JSON</button>
+        <button class="btn-secondary" onclick="document.getElementById('file-input').click()">Load File</button>
+        <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadFile(event)">
+      </div>
+      <textarea id="json-input" class="entrance-textarea"
+        placeholder='{"nodes": {...}, "edges": [...]}'></textarea>
+      <button id="json-load-btn" class="btn-secondary hidden" onclick="loadFromInput()">Load JSON</button>
+    </div>
+  </div>
 </div>
 
-<div id="hud" class="hidden">
-  <h1>MULTIPASS</h1>
-  <div class="stat">Wings: <b id="s-wings">0</b></div>
-  <div class="stat">Rooms: <b id="s-rooms">0</b></div>
-  <div class="stat">Tunnels: <b id="s-tunnels">0</b></div>
-  <div class="stat">Isolated wings: <b id="s-isolated">0</b></div>
+<!-- ── HUD: Wayfinding ──────────────────────────────────── -->
+<div id="hud">
+  <div class="hud-title">Palace Map</div>
+  <div class="stat">
+    <span class="stat-label">Wings</span>
+    <span class="stat-val" id="s-wings">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Rooms</span>
+    <span class="stat-val" id="s-rooms">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Tunnels</span>
+    <span class="stat-val" id="s-tunnels">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Isolated</span>
+    <span class="stat-val" id="s-isolated">0</span>
+  </div>
 </div>
 
+<!-- ── Detail Panel ─────────────────────────────────────── -->
 <div id="panel">
   <span class="close" onclick="closePanel()">&times;</span>
   <div class="room-name" id="p-name"></div>
@@ -102,40 +483,45 @@
   <div class="tunnels" id="p-tunnels"></div>
 </div>
 
-<div id="legend" class="hidden">
-  <div class="item"><span class="dot" style="background:#666"></span> Room (size = content volume)</div>
-  <div class="item"><span class="dot" style="background:#4a7"></span> Tunnel (cross-wing connection)</div>
-  <div class="item"><span class="dot" style="background:#a44; opacity:0.5"></span> Isolated wing (no tunnels)</div>
+<!-- ── Legend ────────────────────────────────────────────── -->
+<div id="legend">
+  <div class="legend-title">Structures</div>
+  <div class="item"><span class="dot octahedron" style="background:var(--amber)"></span> Wing (domain)</div>
+  <div class="item"><span class="dot" style="background:var(--parchment-dim)"></span> Room (topic, size = volume)</div>
+  <div class="item"><span class="dot" style="background:var(--teal); width:20px; height:3px; border-radius:1px;"></span> Tunnel (multi-hop path)</div>
+  <div class="item"><span class="dot octahedron" style="background:var(--crimson)"></span> Isolated wing (knowledge silo)</div>
 </div>
 
+<!-- ── Graph Container ──────────────────────────────────── -->
 <div id="graph"></div>
 
-<script src="https://unpkg.com/3d-force-graph@1"></script>
+<script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
 <script>
-// Wing color palette — deterministic hash to color
-const WING_COLORS = [
-  '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
-  '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
-  '#86bcb6', '#d37295', '#8cd17d', '#b6992d', '#499894',
+
+// ── Palette ────────────────────────────────────────────────
+const WING_PALETTE = [
+  '#E8723A', '#2EC4B6', '#F5A623', '#7B68EE', '#59A14F',
+  '#E15759', '#76B7B2', '#EDC948', '#B07AA1', '#FF9DA7',
+  '#86BCB6', '#D37295', '#8CD17D', '#B6992D', '#499894',
 ];
 
 function wingColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = ((h << 5) - h + name.charCodeAt(i)) | 0;
-  return WING_COLORS[Math.abs(h) % WING_COLORS.length];
+  return WING_PALETTE[Math.abs(h) % WING_PALETTE.length];
 }
 
 let graph3d = null;
 let graphData = null;
 
-// Convert mempalace build_graph() format to 3d-force-graph format
+// ── Data Conversion ────────────────────────────────────────
+
 function convertPalaceData(palace) {
   const nodes = [];
   const links = [];
   const wingSet = new Set();
   const tunnelWings = new Set();
 
-  // Nodes from palace.nodes: {room_name: {wings: [], halls: [], count: N, dates: []}}
   const roomMap = palace.nodes || {};
   for (const [roomName, meta] of Object.entries(roomMap)) {
     const wings = meta.wings || [];
@@ -148,30 +534,18 @@ function convertPalaceData(palace) {
       count: meta.count || 1,
       dates: meta.dates || [],
       type: 'room',
-      // Primary wing for coloring
       primaryWing: wings[0] || 'unknown',
-      // Size proportional to content
       val: Math.max(2, Math.sqrt(meta.count || 1) * 3),
     });
   }
 
-  // Edges from palace.edges: [{room, wing_a, wing_b, hall, count}]
   const edges = palace.edges || [];
   for (const edge of edges) {
     tunnelWings.add(edge.wing_a);
     tunnelWings.add(edge.wing_b);
-    links.push({
-      source: edge.room,
-      target: edge.room, // self-link placeholder — we'll create wing nodes
-      wing_a: edge.wing_a,
-      wing_b: edge.wing_b,
-      hall: edge.hall,
-      count: edge.count || 1,
-      type: 'tunnel',
-    });
   }
 
-  // For tunnel visualization: create wing-level nodes and link rooms to wings
+  // Wing nodes — architectural anchors
   const wingNodes = [];
   for (const wing of wingSet) {
     wingNodes.push({
@@ -179,12 +553,12 @@ function convertPalaceData(palace) {
       name: wing,
       type: 'wing',
       primaryWing: wing,
-      val: 8,
+      val: 12,
       isolated: !tunnelWings.has(wing),
     });
   }
 
-  // Link rooms to their wing nodes
+  // Room-to-wing membership links
   const wingLinks = [];
   for (const node of nodes) {
     for (const wing of node.wings) {
@@ -196,10 +570,9 @@ function convertPalaceData(palace) {
     }
   }
 
-  // Tunnel links between rooms that appear in multiple wings
+  // Tunnel links between wings
   const tunnelLinks = [];
   for (const edge of edges) {
-    // Find rooms in wing_a and wing_b
     tunnelLinks.push({
       source: `wing:${edge.wing_a}`,
       target: `wing:${edge.wing_b}`,
@@ -210,7 +583,6 @@ function convertPalaceData(palace) {
     });
   }
 
-  // Count isolated wings
   const isolatedCount = [...wingSet].filter(w => !tunnelWings.has(w)).length;
 
   return {
@@ -225,64 +597,113 @@ function convertPalaceData(palace) {
   };
 }
 
+// ── 3D Text Sprite ─────────────────────────────────────────
+
+function makeTextSprite(text, opts = {}) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontSize = opts.fontSize || 28;
+  const font = `${opts.fontWeight || '600'} ${fontSize}px Rajdhani, sans-serif`;
+  ctx.font = font;
+  const metrics = ctx.measureText(text);
+  const width = Math.ceil(metrics.width) + 16;
+  const height = fontSize + 12;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.font = font;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = opts.color || '#E8DCC8';
+  ctx.fillText(text, width / 2, height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(mat);
+  const scale = opts.scale || 0.15;
+  sprite.scale.set(width * scale, height * scale, 1);
+  return sprite;
+}
+
+// ── Render ──────────────────────────────────────────────────
+
 function renderGraph(data) {
   graphData = data;
 
-  document.getElementById('load-area').classList.add('hidden');
-  document.getElementById('hud').classList.remove('hidden');
-  document.getElementById('legend').classList.remove('hidden');
+  // Transition: fade out entrance, reveal palace
+  const entrance = document.getElementById('entrance');
+  entrance.style.transition = 'opacity 0.6s ease';
+  entrance.style.opacity = '0';
+  setTimeout(() => {
+    entrance.classList.add('hidden');
+    document.getElementById('hud').classList.add('visible');
+    document.getElementById('legend').classList.add('visible');
+  }, 600);
 
   // Stats
   document.getElementById('s-wings').textContent = data.stats.wings;
   document.getElementById('s-rooms').textContent = data.stats.rooms;
   document.getElementById('s-tunnels').textContent = data.stats.tunnels;
-  document.getElementById('s-isolated').textContent = data.stats.isolated;
+  const isolatedEl = document.getElementById('s-isolated');
+  isolatedEl.textContent = data.stats.isolated;
+  if (data.stats.isolated > 0) isolatedEl.classList.add('warning');
 
   graph3d = ForceGraph3D()(document.getElementById('graph'))
     .graphData(data)
-    .backgroundColor('#0a0a0f')
-    .nodeLabel(n => n.name)
+    .backgroundColor('#080810')
+    .showNavInfo(false)
+    .nodeLabel('')
     .nodeVal(n => n.val)
-    .nodeColor(n => {
-      if (n.type === 'wing') {
-        if (n.isolated) return 'rgba(170, 68, 68, 0.6)';
-        return wingColor(n.name);
-      }
-      return wingColor(n.primaryWing);
-    })
-    .nodeOpacity(0.9)
-    .nodeResolution(16)
+    .nodeOpacity(0.95)
+    .nodeResolution(20)
     .linkColor(l => {
-      if (l.type === 'tunnel') return 'rgba(74, 170, 119, 0.5)';
-      return 'rgba(255, 255, 255, 0.04)';
+      if (l.type === 'tunnel') return 'rgba(46, 196, 182, 0.45)';
+      return 'rgba(232, 220, 200, 0.03)';
     })
     .linkWidth(l => {
-      if (l.type === 'tunnel') return Math.max(1, Math.sqrt(l.count || 1));
-      return 0.3;
+      if (l.type === 'tunnel') return Math.max(1.5, Math.sqrt(l.count || 1) * 1.2);
+      return 0.2;
     })
-    .linkOpacity(0.6)
-    .linkDirectionalParticles(l => l.type === 'tunnel' ? 2 : 0)
-    .linkDirectionalParticleWidth(1.5)
-    .linkDirectionalParticleColor(() => '#4a7')
+    .linkOpacity(0.7)
+    .linkDirectionalParticles(l => l.type === 'tunnel' ? 3 : 0)
+    .linkDirectionalParticleWidth(l => l.type === 'tunnel' ? 2 : 0)
+    .linkDirectionalParticleSpeed(0.006)
+    .linkDirectionalParticleColor(l => l.type === 'tunnel' ? '#E8723A' : '#000')
     .onNodeClick(node => showPanel(node))
     .onBackgroundClick(() => closePanel())
-    // Wing nodes are larger, rendered as octahedra
-    .nodeThreeObject(n => {
-      if (n.type === 'wing') {
-        const geo = new THREE.OctahedronGeometry(n.val * 0.8);
-        const mat = new THREE.MeshLambertMaterial({
-          color: n.isolated ? 0xaa4444 : new THREE.Color(wingColor(n.name)),
-          transparent: true,
-          opacity: 0.7,
-        });
-        return new THREE.Mesh(geo, mat);
-      }
-      return false; // default sphere
-    });
+    .nodeColor(n => {
+      if (n.type === 'wing') return n.isolated ? '#C41E3A' : wingColor(n.name);
+      return wingColor(n.primaryWing);
+    })
+    .nodeLabel(n => n.name)
+  ;
 
-  // Warm start: zoom to fit
-  setTimeout(() => graph3d.zoomToFit(800, 50), 500);
+  // Custom forces for palace-like layout
+  graph3d.d3Force('charge').strength(n => n.type === 'wing' ? -300 : -40);
+  graph3d.d3Force('link').distance(l => l.type === 'tunnel' ? 80 : 30).strength(l => l.type === 'tunnel' ? 0.3 : 0.8);
+
+  // Camera: warm start
+  setTimeout(() => {
+    graph3d.zoomToFit(1200, 80);
+    // Slow orbit
+    let angle = 0;
+    const dist = graph3d.camera().position.length();
+    function orbit() {
+      if (!graph3d) return;
+      angle += 0.0008;
+      graph3d.cameraPosition({
+        x: dist * Math.sin(angle),
+        z: dist * Math.cos(angle),
+      });
+      requestAnimationFrame(orbit);
+    }
+    setTimeout(orbit, 1500);
+  }, 800);
 }
+
+// ── Detail Panel ────────────────────────────────────────────
 
 function showPanel(node) {
   const panel = document.getElementById('panel');
@@ -290,24 +711,20 @@ function showPanel(node) {
 
   document.getElementById('p-name').textContent = node.name;
 
-  // Wing tags
   const wings = node.wings || (node.type === 'wing' ? [node.name] : []);
   document.getElementById('p-wings').innerHTML = wings.map(w =>
     `<span class="wing-tag" style="border-color:${wingColor(w)}; color:${wingColor(w)}">${w}</span>`
   ).join('');
 
-  // Halls
   const halls = node.halls || [];
   document.getElementById('p-halls').textContent = halls.length ? `Halls: ${halls.join(', ')}` : '';
 
-  // Meta
   const meta = [];
   if (node.count) meta.push(`${node.count} items`);
   if (node.dates && node.dates.length) meta.push(`Last active: ${node.dates[node.dates.length - 1]}`);
-  if (node.type === 'wing') meta.push(node.isolated ? 'Isolated — no tunnels' : 'Connected');
-  document.getElementById('p-meta').textContent = meta.join(' | ');
+  if (node.type === 'wing') meta.push(node.isolated ? 'Isolated \u2014 knowledge silo' : 'Connected');
+  document.getElementById('p-meta').textContent = meta.join(' \u00B7 ');
 
-  // Tunnels connected to this node
   const tunnels = (graphData.links || []).filter(l =>
     l.type === 'tunnel' && (
       l.source.id === node.id || l.target.id === node.id ||
@@ -317,10 +734,10 @@ function showPanel(node) {
   );
   const tunnelDiv = document.getElementById('p-tunnels');
   if (tunnels.length) {
-    tunnelDiv.innerHTML = '<h2>Tunnels</h2>' + tunnels.map(t => {
+    tunnelDiv.innerHTML = '<h3>Corridors</h3>' + tunnels.map(t => {
       const src = typeof t.source === 'object' ? t.source.name : t.source;
       const tgt = typeof t.target === 'object' ? t.target.name : t.target;
-      return `<div class="tunnel-item">${src} ↔ ${tgt} (${t.hall || 'general'}, ${t.count}x)</div>`;
+      return `<div class="tunnel-item">${src} \u2194 ${tgt} (${t.hall || 'general'}, ${t.count}\u00D7)</div>`;
     }).join('');
   } else {
     tunnelDiv.innerHTML = '';
@@ -331,7 +748,18 @@ function closePanel() {
   document.getElementById('panel').style.display = 'none';
 }
 
-// Demo palace data — realistic example
+// ── UI Helpers ──────────────────────────────────────────────
+
+function toggleJsonInput() {
+  const ta = document.getElementById('json-input');
+  const btn = document.getElementById('json-load-btn');
+  ta.classList.toggle('visible');
+  btn.classList.toggle('hidden');
+  if (ta.classList.contains('visible')) ta.focus();
+}
+
+// ── Demo Palace Data ────────────────────────────────────────
+
 function demoData() {
   return {
     nodes: {
@@ -378,6 +806,8 @@ function demoData() {
   };
 }
 
+// ── Loaders ─────────────────────────────────────────────────
+
 function loadDemo() {
   const palace = demoData();
   const data = convertPalaceData(palace);
@@ -410,6 +840,7 @@ function loadFile(event) {
   };
   reader.readAsText(file);
 }
+
 </script>
 </body>
 </html>

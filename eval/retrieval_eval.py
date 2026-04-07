@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
-"""Retrieval evaluation for knowledge graph memory systems.
+"""Retrieval evaluation for vault-rag knowledge graph.
 
 Measures Recall@K across five query categories:
-1. Factual retrieval  -- comparable to LongMemEval/LoCoMo
-2. Multi-hop path     -- can path search find chains between distant entities?
-3. Contradiction      -- do conflicting edges get surfaced?
-4. Gap detection      -- does topology flag missing connections?
-5. Thematic/global    -- do community summaries beat flat search?
-
-This eval is designed to be adapted for any memory system. Swap in your
-own queries and expected terms, point it at any search API or local graph,
-get category-level scores.
+1. Factual retrieval  — comparable to LongMemEval/LoCoMo benchmarks
+2. Multi-hop path     — can path search find chains between distant entities?
+3. Contradiction      — do CONTRADICTS edges surface conflicting claims?
+4. Gap detection      — does topology flag missing connections?
+5. Thematic/global    — do community summaries beat flat search for broad queries?
 
 Usage:
     python eval/retrieval_eval.py                  # Run all categories
     python eval/retrieval_eval.py --category path  # Run one category
     python eval/retrieval_eval.py --verbose        # Show per-query details
     python eval/retrieval_eval.py --k 10           # Recall@10 instead of @5
-
-Requires: a running search API (default http://127.0.0.1:7700/search)
-or adapt search_api() for your system's interface.
 """
 
 from __future__ import annotations
@@ -33,184 +26,188 @@ from pathlib import Path
 
 import requests
 
-_API_BASE = "http://127.0.0.1:7700"
+_API_BASE = "http://127.0.0.1:7720"
 DEFAULT_K = 5
 
 
 # ---------------------------------------------------------------------------
-# Query definitions -- 20 queries across 5 categories (4 each)
-#
-# ADAPT THESE for your own knowledge graph. Each query has:
-#   - category: which capability it tests
-#   - query: the natural language search
-#   - mode: search mode (semantic, graph, hybrid, path, global)
-#   - expected: substrings that should appear in top-K results
-#   - description: what this query tests
-#
-# A query is a HIT if at least half of expected terms appear in the
-# combined text of the top-K results.
+# Query definitions — 20 queries across 5 categories (4 each)
 # ---------------------------------------------------------------------------
 
 @dataclass
 class EvalQuery:
+    """A single evaluation query with expected results."""
     category: str
     query: str
-    mode: str
-    expected: list[str]
+    mode: str  # semantic, graph, hybrid, path
+    expected: list[str]  # substrings that should appear in top-K result texts/paths
     description: str = ""
+    cypher: str | None = None  # for graph-native checks (contradiction, gap)
 
 
-# Example queries for a personal knowledge graph.
-# Replace these with queries relevant to YOUR graph.
 QUERIES: list[EvalQuery] = [
-    # -- Category 1: Factual Retrieval -----------------------------------
+    # ── Category 1: Factual Retrieval ──────────────────────────────────
+    # Comparable to LongMemEval — "can you find the right memory?"
     EvalQuery(
         category="factual",
-        query="what database does the knowledge graph use",
+        query="what database does vault-rag use for the knowledge graph",
         mode="hybrid",
-        expected=["ladybug", "graph", "database"],
+        expected=["ladybug", "ldb", "graph"],
         description="Core infrastructure fact",
     ),
     EvalQuery(
         category="factual",
-        query="how is ingestion configured",
+        query="how is the overnight enrichment schedule configured",
         mode="hybrid",
-        expected=["ingest", "obsidian", "extract"],
-        description="Pipeline knowledge",
+        expected=["enrich", "timer", "systemd"],
+        description="Operational knowledge — enrichment pipeline",
     ),
     EvalQuery(
         category="factual",
         query="what entity types does the ontology define",
         mode="hybrid",
-        expected=["concept", "person", "source", "project"],
-        description="Schema knowledge",
+        expected=["person", "project", "concept", "ontology"],
+        description="Schema knowledge — entity type vocabulary",
     ),
     EvalQuery(
         category="factual",
-        query="how does semantic search work in this system",
+        query="how does the context strategy system filter results",
         mode="hybrid",
-        expected=["vector", "embedding", "search", "similar"],
-        description="Retrieval architecture",
+        expected=["context", "strateg", "filter", "task_type"],
+        description="Retrieval architecture knowledge",
     ),
 
-    # -- Category 2: Multi-hop Path --------------------------------------
+    # ── Category 2: Multi-hop Path ─────────────────────────────────────
+    # Unique to graph-based systems — chain reasoning across typed edges
     EvalQuery(
         category="path",
-        query="how does topology connect to retrieval quality",
+        query="how does topology analysis connect to retrieval quality",
         mode="path",
-        expected=["topology", "retrieval", "gap", "connect"],
-        description="Two-hop: topology -> gaps -> retrieval",
+        expected=["topology", "retrieval", "gap", "bridge"],
+        description="Two-hop: topology → gap detection → retrieval improvement",
     ),
     EvalQuery(
         category="path",
-        query="relationship between extraction and graph health",
+        query="relationship between extraction quality and graph health",
         mode="path",
         expected=["extract", "entity", "graph", "health"],
-        description="Multi-hop: extractor -> entities -> graph",
+        description="Multi-hop: extractor → entities → edges → graph metrics",
     ),
     EvalQuery(
         category="path",
-        query="how do insights connect to open questions",
+        query="how do enrichment patterns affect overnight schedule outcomes",
         mode="path",
-        expected=["insight", "question", "answer", "connect"],
-        description="Ontology path: insight ANSWERS question",
+        expected=["enrichment", "pattern", "schedule", "overnight"],
+        description="Cross-domain path: lifecycle → scheduler → results",
     ),
     EvalQuery(
         category="path",
-        query="connection between practices and projects",
+        query="connection between ontology validation and false bridges",
         mode="path",
-        expected=["practice", "project", "applied", "method"],
-        description="Ontology path: practice PRACTICED_IN project",
+        expected=["ontology", "valid", "bridge", "false"],
+        description="Causal chain: bad types → wrong edges → false bridges",
     ),
 
-    # -- Category 3: Contradiction Detection -----------------------------
+    # ── Category 3: Contradiction Detection ────────────────────────────
+    # Unique — can the system surface conflicting claims?
     EvalQuery(
         category="contradiction",
-        query="conflicting ideas or beliefs in the graph",
+        query="sqlite alternative tests whether hybrid graph database approach is necessary",
         mode="hybrid",
-        expected=["conflict", "contradict", "tension"],
-        description="Should surface CONFLICTS_WITH edges",
+        expected=["sqlite", "hybrid", "graph", "alternative"],
+        description="Known tension: SQLite-only vs hybrid graph DB approaches",
+        cypher=(
+            "MATCH (e1:Entity)-[r:ENTITY_TO_ENTITY {edge_type: 'CONTRADICTS'}]->(e2:Entity) "
+            "RETURN e1.name, e2.name LIMIT 10"
+        ),
     ),
     EvalQuery(
         category="contradiction",
-        query="concepts that disagree with each other",
+        query="security input validation vs command injection prevention tradeoffs",
+        mode="hybrid",
+        expected=["security", "input", "valid", "command"],
+        description="Known CONTRADICTS edges: security concepts in tension",
+    ),
+    EvalQuery(
+        category="contradiction",
+        query="conflicting claims about deployment architecture",
+        mode="hybrid",
+        expected=["deploy", "host", "server"],
+        description="Cross-project deployment contradictions",
+    ),
+    EvalQuery(
+        category="contradiction",
+        query="tensions in graph schema design decisions",
+        mode="hybrid",
+        expected=["schema", "consolidat", "table", "edge"],
+        description="Schema evolution: 22 tables → 8, old vs new",
+    ),
+
+    # ── Category 4: Gap Detection ──────────────────────────────────────
+    # Unique — does topology find what's missing?
+    EvalQuery(
+        category="gap",
+        query="what topics lack cross-references in the knowledge graph",
+        mode="hybrid",
+        expected=["gap", "disconnect", "component", "bridge"],
+        description="Topology should surface disconnected communities",
+        cypher=(
+            "MATCH (e:Entity) WHERE NOT (e)-[:ENTITY_TO_ENTITY]->() "
+            "AND NOT ()-[:ENTITY_TO_ENTITY]->(e) "
+            "RETURN e.name, e.entity_type LIMIT 20"
+        ),
+    ),
+    EvalQuery(
+        category="gap",
+        query="which projects have no knowledge graph entities",
         mode="graph",
-        expected=["concept", "disagree", "conflict"],
-        description="Graph-mode contradiction surfacing",
+        expected=["project", "entity", "missing"],
+        description="Coverage gap — projects without graph representation",
     ),
     EvalQuery(
-        category="contradiction",
-        query="what ideas have I changed my mind about",
+        category="gap",
+        query="areas where LINKS_TO edges are missing between related notes",
         mode="hybrid",
-        expected=["change", "revise", "conflict", "update"],
-        description="Temporal contradiction: old belief vs new",
+        expected=["link", "note", "connect"],
+        description="Structural gap — notes that should be linked but aren't",
     ),
     EvalQuery(
-        category="contradiction",
-        query="tensions between my beliefs",
-        mode="hybrid",
-        expected=["tension", "belief", "conflict"],
-        description="Cognitive tension from CONFLICTS_WITH",
+        category="gap",
+        query="synthesis opportunities between unconnected topic clusters",
+        mode="path",
+        expected=["synthes", "cluster", "communit", "gap"],
+        description="Creative gap — topology synthesis suggestions",
     ),
 
-    # -- Category 4: Gap Detection ---------------------------------------
-    EvalQuery(
-        category="gap",
-        query="what topics have no connections in the graph",
-        mode="hybrid",
-        expected=["gap", "isolated", "missing", "connect"],
-        description="Structural gaps: disconnected entities",
-    ),
-    EvalQuery(
-        category="gap",
-        query="what questions remain unanswered",
-        mode="hybrid",
-        expected=["question", "unanswered", "open"],
-        description="Knowledge gaps: questions without ANSWERS edges",
-    ),
-    EvalQuery(
-        category="gap",
-        query="which concepts lack supporting evidence",
-        mode="graph",
-        expected=["concept", "evidence", "source", "support"],
-        description="Provenance gap: concepts without LEARNED_FROM",
-    ),
-    EvalQuery(
-        category="gap",
-        query="areas where ideas should connect but don't",
-        mode="hybrid",
-        expected=["connect", "gap", "related", "missing"],
-        description="Synthesis gap from community detection",
-    ),
-
-    # -- Category 5: Thematic/Global -------------------------------------
+    # ── Category 5: Thematic/Global ────────────────────────────────────
+    # Community-level reasoning, broad questions — tests mode=global
     EvalQuery(
         category="global",
-        query="what are the main themes across all my notes",
+        query="surveillance and privacy themes across the knowledge base",
         mode="global",
-        expected=["theme", "topic", "concept", "cluster"],
-        description="Community-level themes",
+        expected=["surveil", "privacy", "monitor", "panoptic"],
+        description="Cross-cutting theme that spans multiple projects",
     ),
     EvalQuery(
         category="global",
-        query="broad patterns in my knowledge graph",
+        query="content engine architecture patterns shared across projects",
         mode="global",
-        expected=["pattern", "graph", "knowledge", "connect"],
-        description="Structural patterns across communities",
+        expected=["content", "engine", "strong coast", "elephant"],
+        description="Architectural pattern that recurs across projects",
     ),
     EvalQuery(
         category="global",
-        query="what topics do I know the most about",
+        query="graph database design decisions and their rationale",
         mode="global",
-        expected=["topic", "entity", "concept", "count"],
-        description="Coverage analysis",
+        expected=["graph", "database", "decision", "ladybug"],
+        description="Decision archaeology — why things are the way they are",
     ),
     EvalQuery(
         category="global",
-        query="how do my different projects relate to each other",
+        query="topology and persistent homology applications",
         mode="global",
-        expected=["project", "relate", "connect", "share"],
-        description="Cross-project thematic analysis",
+        expected=["topology", "homolog", "ripser", "betti"],
+        description="Mathematical framework theme across the system",
     ),
 ]
 
@@ -240,11 +237,24 @@ class CategoryScore:
     results: list[QueryResult] = field(default_factory=list)
 
 
-def search_api(query: str, mode: str, limit: int) -> list[dict]:
-    """Call the search API. Adapt this for your system's interface."""
+def search_api(query: str, mode: str, limit: int, api_base: str = "") -> list[dict]:
+    """Call the vault-rag search API."""
+    base = api_base or _API_BASE
     resp = requests.post(
-        f"{_API_BASE}/search",
+        f"{base}/search",
         json={"q": query, "mode": mode, "limit": limit},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def cypher_api(cypher: str, api_base: str = "") -> str:
+    """Call the vault-rag graph/cypher API."""
+    base = api_base or _API_BASE
+    resp = requests.post(
+        f"{base}/graph",
+        json={"cypher": cypher},
         timeout=30,
     )
     resp.raise_for_status()
@@ -256,7 +266,7 @@ def evaluate_query(eq: EvalQuery, k: int) -> QueryResult:
     t0 = time.monotonic()
 
     try:
-        results = search_api(eq.query, eq.mode, limit=k)
+        results = search_api(eq.query, eq.mode, limit=k, api_base=_API_BASE)
     except Exception as e:
         return QueryResult(
             query=eq, hit=False, matched_terms=[], missed_terms=eq.expected,
@@ -293,6 +303,7 @@ def run_eval(
     verbose: bool = False,
 ) -> dict[str, CategoryScore]:
     """Run the full evaluation suite."""
+
     queries = QUERIES
     if categories:
         queries = [q for q in queries if q.category in categories]
@@ -325,6 +336,7 @@ def run_eval(
                 print(f"         ERROR: {result.error}")
             print()
 
+    # Compute final scores
     for cat in scores.values():
         cat.recall = cat.hits / cat.total if cat.total > 0 else 0.0
         latencies = [r.latency_ms for r in cat.results if not r.error]
@@ -336,7 +348,7 @@ def run_eval(
 def print_report(scores: dict[str, CategoryScore], k: int) -> None:
     """Print the evaluation report."""
     print()
-    print(f"Knowledge Graph Retrieval Eval -- Recall@{k}")
+    print(f"Vault-RAG Retrieval Eval — Recall@{k}")
     print("=" * 60)
 
     total_hits = 0
@@ -350,19 +362,20 @@ def print_report(scores: dict[str, CategoryScore], k: int) -> None:
         total_hits += cat.hits
         total_queries += cat.total
 
-        bar = "+" * cat.hits + "." * (cat.total - cat.hits)
+        bar = "█" * cat.hits + "░" * (cat.total - cat.hits)
         pct = cat.recall * 100
 
+        # Comparable note for factual
         note = ""
         if cat_name == "factual":
-            note = "  (standard benchmark territory)"
+            note = "  (LongMemEval baseline: 96.6%)"
         elif cat_name in ("path", "contradiction", "gap"):
             note = "  (no published baseline)"
 
         print(f"  {cat_name:<16} {bar} {cat.hits}/{cat.total}  R@{k}={pct:5.1f}%  avg={cat.avg_latency_ms:.0f}ms{note}")
 
     overall = total_hits / total_queries * 100 if total_queries > 0 else 0
-    print(f"  {'=' * 56}")
+    print(f"  {'─' * 56}")
     print(f"  {'OVERALL':<16}       {total_hits}/{total_queries}  R@{k}={overall:5.1f}%")
     print()
 
@@ -390,10 +403,14 @@ def print_report(scores: dict[str, CategoryScore], k: int) -> None:
     print()
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
 def main():
     global _API_BASE
 
-    parser = argparse.ArgumentParser(description="Knowledge graph retrieval evaluation")
+    parser = argparse.ArgumentParser(description="Vault-RAG retrieval evaluation")
     parser.add_argument("--category", "-c", help="Run specific category only")
     parser.add_argument("--k", type=int, default=DEFAULT_K, help="Recall@K (default: 5)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show per-query details")
@@ -402,7 +419,7 @@ def main():
 
     _API_BASE = args.api
 
-    # Verify API is reachable
+    # Verify API is reachable (use search endpoint — /stats can hang)
     try:
         requests.post(
             f"{_API_BASE}/search",
@@ -410,7 +427,8 @@ def main():
             timeout=10,
         )
     except Exception:
-        print(f"ERROR: Search API not reachable at {_API_BASE}")
+        print(f"ERROR: Vault-RAG API not reachable at {_API_BASE}")
+        print("Start it with: systemctl --user start knowledge-graph-api")
         sys.exit(1)
 
     categories = [args.category] if args.category else None
