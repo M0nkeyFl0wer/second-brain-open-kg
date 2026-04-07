@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Multipass — 3D Palace Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: 'JetBrains Mono', 'Fira Code', monospace; overflow: hidden; }
+  #graph { width: 100vw; height: 100vh; }
+
+  #hud {
+    position: fixed; top: 16px; left: 16px; z-index: 10;
+    background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 16px 20px; max-width: 320px;
+    backdrop-filter: blur(12px);
+  }
+  #hud h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; color: #aaa; margin-bottom: 8px; }
+  #hud .stat { font-size: 12px; color: #666; margin: 2px 0; }
+  #hud .stat b { color: #ccc; }
+
+  #panel {
+    position: fixed; top: 16px; right: 16px; z-index: 10;
+    background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 20px; max-width: 360px; max-height: 80vh;
+    overflow-y: auto; backdrop-filter: blur(12px);
+    display: none;
+  }
+  #panel h2 { font-size: 13px; color: #fff; margin-bottom: 8px; }
+  #panel .room-name { font-size: 18px; color: #fff; font-weight: 700; margin-bottom: 12px; }
+  #panel .wing-tag {
+    display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    margin: 2px 4px 2px 0; border: 1px solid rgba(255,255,255,0.15);
+  }
+  #panel .hall-tag { font-size: 11px; color: #888; margin: 4px 0; }
+  #panel .meta { font-size: 11px; color: #555; margin-top: 8px; }
+  #panel .tunnels { margin-top: 12px; }
+  #panel .tunnel-item { font-size: 11px; color: #7a7; margin: 3px 0; cursor: pointer; }
+  #panel .tunnel-item:hover { color: #afa; }
+  #panel .close { position: absolute; top: 8px; right: 12px; cursor: pointer; color: #555; font-size: 16px; }
+  #panel .close:hover { color: #fff; }
+
+  #legend {
+    position: fixed; bottom: 16px; left: 16px; z-index: 10;
+    background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 12px 16px; backdrop-filter: blur(12px);
+  }
+  #legend .item { font-size: 11px; color: #888; margin: 2px 0; display: flex; align-items: center; gap: 8px; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  #load-area {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;
+    background: rgba(10, 10, 15, 0.95); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 40px; text-align: center; max-width: 500px;
+  }
+  #load-area h2 { font-size: 16px; margin-bottom: 16px; color: #ccc; }
+  #load-area p { font-size: 12px; color: #666; margin-bottom: 20px; line-height: 1.6; }
+  #load-area button {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-family: inherit;
+    font-size: 12px; margin: 4px;
+  }
+  #load-area button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  #load-area textarea {
+    width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+    color: #ccc; font-family: inherit; font-size: 11px; padding: 8px; border-radius: 4px;
+    resize: vertical; margin-bottom: 12px;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="load-area">
+  <h2>MULTIPASS</h2>
+  <p style="font-size:10px; color:#444; margin-bottom:12px;">a multi-pass to the mem palace</p>
+  <p>
+    Paste your palace graph JSON below, or load the demo palace.<br>
+    Generate with: <code>mempalace graph --json > palace.json</code>
+  </p>
+  <textarea id="json-input" placeholder='{"nodes": {...}, "edges": [...]}'></textarea>
+  <br>
+  <button onclick="loadDemo()">Load Demo Palace</button>
+  <button onclick="loadFromInput()">Load JSON</button>
+  <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadFile(event)">
+  <button onclick="document.getElementById('file-input').click()">Load File</button>
+</div>
+
+<div id="hud" class="hidden">
+  <h1>MULTIPASS</h1>
+  <div class="stat">Wings: <b id="s-wings">0</b></div>
+  <div class="stat">Rooms: <b id="s-rooms">0</b></div>
+  <div class="stat">Tunnels: <b id="s-tunnels">0</b></div>
+  <div class="stat">Isolated wings: <b id="s-isolated">0</b></div>
+</div>
+
+<div id="panel">
+  <span class="close" onclick="closePanel()">&times;</span>
+  <div class="room-name" id="p-name"></div>
+  <div id="p-wings"></div>
+  <div class="hall-tag" id="p-halls"></div>
+  <div class="meta" id="p-meta"></div>
+  <div class="tunnels" id="p-tunnels"></div>
+</div>
+
+<div id="legend" class="hidden">
+  <div class="item"><span class="dot" style="background:#666"></span> Room (size = content volume)</div>
+  <div class="item"><span class="dot" style="background:#4a7"></span> Tunnel (cross-wing connection)</div>
+  <div class="item"><span class="dot" style="background:#a44; opacity:0.5"></span> Isolated wing (no tunnels)</div>
+</div>
+
+<div id="graph"></div>
+
+<script src="https://unpkg.com/3d-force-graph@1"></script>
+<script>
+// Wing color palette — deterministic hash to color
+const WING_COLORS = [
+  '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+  '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
+  '#86bcb6', '#d37295', '#8cd17d', '#b6992d', '#499894',
+];
+
+function wingColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+  return WING_COLORS[Math.abs(h) % WING_COLORS.length];
+}
+
+let graph3d = null;
+let graphData = null;
+
+// Convert mempalace build_graph() format to 3d-force-graph format
+function convertPalaceData(palace) {
+  const nodes = [];
+  const links = [];
+  const wingSet = new Set();
+  const tunnelWings = new Set();
+
+  // Nodes from palace.nodes: {room_name: {wings: [], halls: [], count: N, dates: []}}
+  const roomMap = palace.nodes || {};
+  for (const [roomName, meta] of Object.entries(roomMap)) {
+    const wings = meta.wings || [];
+    wings.forEach(w => wingSet.add(w));
+    nodes.push({
+      id: roomName,
+      name: roomName,
+      wings: wings,
+      halls: meta.halls || [],
+      count: meta.count || 1,
+      dates: meta.dates || [],
+      type: 'room',
+      // Primary wing for coloring
+      primaryWing: wings[0] || 'unknown',
+      // Size proportional to content
+      val: Math.max(2, Math.sqrt(meta.count || 1) * 3),
+    });
+  }
+
+  // Edges from palace.edges: [{room, wing_a, wing_b, hall, count}]
+  const edges = palace.edges || [];
+  for (const edge of edges) {
+    tunnelWings.add(edge.wing_a);
+    tunnelWings.add(edge.wing_b);
+    links.push({
+      source: edge.room,
+      target: edge.room, // self-link placeholder — we'll create wing nodes
+      wing_a: edge.wing_a,
+      wing_b: edge.wing_b,
+      hall: edge.hall,
+      count: edge.count || 1,
+      type: 'tunnel',
+    });
+  }
+
+  // For tunnel visualization: create wing-level nodes and link rooms to wings
+  const wingNodes = [];
+  for (const wing of wingSet) {
+    wingNodes.push({
+      id: `wing:${wing}`,
+      name: wing,
+      type: 'wing',
+      primaryWing: wing,
+      val: 8,
+      isolated: !tunnelWings.has(wing),
+    });
+  }
+
+  // Link rooms to their wing nodes
+  const wingLinks = [];
+  for (const node of nodes) {
+    for (const wing of node.wings) {
+      wingLinks.push({
+        source: node.id,
+        target: `wing:${wing}`,
+        type: 'membership',
+      });
+    }
+  }
+
+  // Tunnel links between rooms that appear in multiple wings
+  const tunnelLinks = [];
+  for (const edge of edges) {
+    // Find rooms in wing_a and wing_b
+    tunnelLinks.push({
+      source: `wing:${edge.wing_a}`,
+      target: `wing:${edge.wing_b}`,
+      type: 'tunnel',
+      label: edge.room,
+      hall: edge.hall,
+      count: edge.count || 1,
+    });
+  }
+
+  // Count isolated wings
+  const isolatedCount = [...wingSet].filter(w => !tunnelWings.has(w)).length;
+
+  return {
+    nodes: [...wingNodes, ...nodes],
+    links: [...wingLinks, ...tunnelLinks],
+    stats: {
+      wings: wingSet.size,
+      rooms: nodes.length,
+      tunnels: edges.length,
+      isolated: isolatedCount,
+    },
+  };
+}
+
+function renderGraph(data) {
+  graphData = data;
+
+  document.getElementById('load-area').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('legend').classList.remove('hidden');
+
+  // Stats
+  document.getElementById('s-wings').textContent = data.stats.wings;
+  document.getElementById('s-rooms').textContent = data.stats.rooms;
+  document.getElementById('s-tunnels').textContent = data.stats.tunnels;
+  document.getElementById('s-isolated').textContent = data.stats.isolated;
+
+  graph3d = ForceGraph3D()(document.getElementById('graph'))
+    .graphData(data)
+    .backgroundColor('#0a0a0f')
+    .nodeLabel(n => n.name)
+    .nodeVal(n => n.val)
+    .nodeColor(n => {
+      if (n.type === 'wing') {
+        if (n.isolated) return 'rgba(170, 68, 68, 0.6)';
+        return wingColor(n.name);
+      }
+      return wingColor(n.primaryWing);
+    })
+    .nodeOpacity(0.9)
+    .nodeResolution(16)
+    .linkColor(l => {
+      if (l.type === 'tunnel') return 'rgba(74, 170, 119, 0.5)';
+      return 'rgba(255, 255, 255, 0.04)';
+    })
+    .linkWidth(l => {
+      if (l.type === 'tunnel') return Math.max(1, Math.sqrt(l.count || 1));
+      return 0.3;
+    })
+    .linkOpacity(0.6)
+    .linkDirectionalParticles(l => l.type === 'tunnel' ? 2 : 0)
+    .linkDirectionalParticleWidth(1.5)
+    .linkDirectionalParticleColor(() => '#4a7')
+    .onNodeClick(node => showPanel(node))
+    .onBackgroundClick(() => closePanel())
+    // Wing nodes are larger, rendered as octahedra
+    .nodeThreeObject(n => {
+      if (n.type === 'wing') {
+        const geo = new THREE.OctahedronGeometry(n.val * 0.8);
+        const mat = new THREE.MeshLambertMaterial({
+          color: n.isolated ? 0xaa4444 : new THREE.Color(wingColor(n.name)),
+          transparent: true,
+          opacity: 0.7,
+        });
+        return new THREE.Mesh(geo, mat);
+      }
+      return false; // default sphere
+    });
+
+  // Warm start: zoom to fit
+  setTimeout(() => graph3d.zoomToFit(800, 50), 500);
+}
+
+function showPanel(node) {
+  const panel = document.getElementById('panel');
+  panel.style.display = 'block';
+
+  document.getElementById('p-name').textContent = node.name;
+
+  // Wing tags
+  const wings = node.wings || (node.type === 'wing' ? [node.name] : []);
+  document.getElementById('p-wings').innerHTML = wings.map(w =>
+    `<span class="wing-tag" style="border-color:${wingColor(w)}; color:${wingColor(w)}">${w}</span>`
+  ).join('');
+
+  // Halls
+  const halls = node.halls || [];
+  document.getElementById('p-halls').textContent = halls.length ? `Halls: ${halls.join(', ')}` : '';
+
+  // Meta
+  const meta = [];
+  if (node.count) meta.push(`${node.count} items`);
+  if (node.dates && node.dates.length) meta.push(`Last active: ${node.dates[node.dates.length - 1]}`);
+  if (node.type === 'wing') meta.push(node.isolated ? 'Isolated — no tunnels' : 'Connected');
+  document.getElementById('p-meta').textContent = meta.join(' | ');
+
+  // Tunnels connected to this node
+  const tunnels = (graphData.links || []).filter(l =>
+    l.type === 'tunnel' && (
+      l.source.id === node.id || l.target.id === node.id ||
+      l.source === node.id || l.target === node.id ||
+      l.label === node.name
+    )
+  );
+  const tunnelDiv = document.getElementById('p-tunnels');
+  if (tunnels.length) {
+    tunnelDiv.innerHTML = '<h2>Tunnels</h2>' + tunnels.map(t => {
+      const src = typeof t.source === 'object' ? t.source.name : t.source;
+      const tgt = typeof t.target === 'object' ? t.target.name : t.target;
+      return `<div class="tunnel-item">${src} ↔ ${tgt} (${t.hall || 'general'}, ${t.count}x)</div>`;
+    }).join('');
+  } else {
+    tunnelDiv.innerHTML = '';
+  }
+}
+
+function closePanel() {
+  document.getElementById('panel').style.display = 'none';
+}
+
+// Demo palace data — realistic example
+function demoData() {
+  return {
+    nodes: {
+      "auth-migration": { wings: ["backend", "security"], halls: ["hall_decisions", "hall_events"], count: 47, dates: ["2026-03-15", "2026-04-01"] },
+      "graphql-switch": { wings: ["backend", "frontend"], halls: ["hall_decisions", "hall_technical"], count: 23, dates: ["2026-02-20", "2026-03-10"] },
+      "ci-pipeline": { wings: ["devops", "backend"], halls: ["hall_technical", "hall_events"], count: 31, dates: ["2026-03-01", "2026-04-05"] },
+      "user-onboarding": { wings: ["frontend", "design"], halls: ["hall_discoveries", "hall_preferences"], count: 18, dates: ["2026-01-15"] },
+      "rate-limiting": { wings: ["backend", "security"], halls: ["hall_technical", "hall_decisions"], count: 12, dates: ["2026-03-20"] },
+      "dark-mode": { wings: ["frontend", "design"], halls: ["hall_preferences"], count: 8, dates: ["2026-02-01"] },
+      "db-indexing": { wings: ["backend"], halls: ["hall_technical", "hall_discoveries"], count: 35, dates: ["2026-03-25", "2026-04-02"] },
+      "monitoring-stack": { wings: ["devops"], halls: ["hall_technical", "hall_events"], count: 28, dates: ["2026-04-01"] },
+      "api-versioning": { wings: ["backend", "frontend"], halls: ["hall_decisions"], count: 15, dates: ["2026-02-28"] },
+      "token-refresh": { wings: ["security", "frontend"], halls: ["hall_technical", "hall_events"], count: 20, dates: ["2026-03-18"] },
+      "perf-audit": { wings: ["backend", "devops"], halls: ["hall_discoveries", "hall_events"], count: 42, dates: ["2026-04-03"] },
+      "data-privacy": { wings: ["security", "legal"], halls: ["hall_decisions", "hall_facts"], count: 14, dates: ["2026-01-20"] },
+      "component-library": { wings: ["frontend", "design"], halls: ["hall_technical", "hall_preferences"], count: 55, dates: ["2026-03-30"] },
+      "incident-2026-03": { wings: ["devops", "backend", "security"], halls: ["hall_events"], count: 67, dates: ["2026-03-14", "2026-03-15", "2026-03-16"] },
+      "team-retro": { wings: ["team"], halls: ["hall_events", "hall_preferences"], count: 9, dates: ["2026-04-04"] },
+      "budget-q2": { wings: ["legal"], halls: ["hall_decisions", "hall_facts"], count: 6, dates: ["2026-03-28"] },
+      "search-rewrite": { wings: ["backend", "frontend"], halls: ["hall_technical", "hall_decisions"], count: 38, dates: ["2026-04-06"] },
+      "caching-strategy": { wings: ["backend", "devops"], halls: ["hall_technical", "hall_discoveries"], count: 22, dates: ["2026-03-22"] },
+      "e2e-tests": { wings: ["devops", "frontend"], halls: ["hall_technical"], count: 16, dates: ["2026-04-01"] },
+      "ssl-rotation": { wings: ["security", "devops"], halls: ["hall_technical", "hall_events"], count: 10, dates: ["2026-02-15"] },
+    },
+    edges: [
+      { room: "auth-migration", wing_a: "backend", wing_b: "security", hall: "hall_decisions", count: 12 },
+      { room: "graphql-switch", wing_a: "backend", wing_b: "frontend", hall: "hall_decisions", count: 8 },
+      { room: "ci-pipeline", wing_a: "devops", wing_b: "backend", hall: "hall_technical", count: 15 },
+      { room: "rate-limiting", wing_a: "backend", wing_b: "security", hall: "hall_technical", count: 5 },
+      { room: "token-refresh", wing_a: "security", wing_b: "frontend", hall: "hall_technical", count: 7 },
+      { room: "perf-audit", wing_a: "backend", wing_b: "devops", hall: "hall_discoveries", count: 20 },
+      { room: "data-privacy", wing_a: "security", wing_b: "legal", hall: "hall_decisions", count: 3 },
+      { room: "incident-2026-03", wing_a: "devops", wing_b: "security", hall: "hall_events", count: 25 },
+      { room: "incident-2026-03", wing_a: "devops", wing_b: "backend", hall: "hall_events", count: 18 },
+      { room: "api-versioning", wing_a: "backend", wing_b: "frontend", hall: "hall_decisions", count: 6 },
+      { room: "search-rewrite", wing_a: "backend", wing_b: "frontend", hall: "hall_technical", count: 11 },
+      { room: "caching-strategy", wing_a: "backend", wing_b: "devops", hall: "hall_technical", count: 9 },
+      { room: "user-onboarding", wing_a: "frontend", wing_b: "design", hall: "hall_discoveries", count: 4 },
+      { room: "dark-mode", wing_a: "frontend", wing_b: "design", hall: "hall_preferences", count: 2 },
+      { room: "component-library", wing_a: "frontend", wing_b: "design", hall: "hall_technical", count: 14 },
+      { room: "e2e-tests", wing_a: "devops", wing_b: "frontend", hall: "hall_technical", count: 7 },
+      { room: "ssl-rotation", wing_a: "security", wing_b: "devops", hall: "hall_technical", count: 4 },
+    ],
+  };
+}
+
+function loadDemo() {
+  const palace = demoData();
+  const data = convertPalaceData(palace);
+  renderGraph(data);
+}
+
+function loadFromInput() {
+  try {
+    const raw = document.getElementById('json-input').value;
+    const palace = JSON.parse(raw);
+    const data = convertPalaceData(palace);
+    renderGraph(data);
+  } catch (e) {
+    alert('Invalid JSON: ' + e.message);
+  }
+}
+
+function loadFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const palace = JSON.parse(e.target.result);
+      const data = convertPalaceData(palace);
+      renderGraph(data);
+    } catch (err) {
+      alert('Invalid JSON file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>

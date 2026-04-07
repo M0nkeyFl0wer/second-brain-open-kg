@@ -462,6 +462,31 @@ class Graph:
             })
         return sorted(results, key=lambda p: -p["path_confidence"])
 
+    def find_contradictions(self, entity_ids: list[str],
+                            limit: int = 10) -> list[dict]:
+        """Find CONFLICTS_WITH edges for the given entities.
+
+        Returns dicts with: source_label, target_label, edge_type,
+        confidence, provenance.
+        """
+        results = []
+        seen = set()
+        for eid in entity_ids[:20]:
+            rows = self.query("""
+                MATCH (a:Entity {id: $eid})-[r:RELATES_TO {edge_type: 'CONFLICTS_WITH'}]->(b:Entity)
+                RETURN a.label AS source_label, b.label AS target_label,
+                       r.confidence AS confidence, r.provenance AS provenance
+            """, parameters={"eid": eid})
+            for row in rows:
+                key = f"{row['source_label']}|{row['target_label']}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append(row)
+                if len(results) >= limit:
+                    return results
+        return results
+
     def close(self):
         if self.conn:
             self.conn = None
