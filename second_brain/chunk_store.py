@@ -76,7 +76,7 @@ class ChunkStore:
             # Attach the persistent DB and copy embeddings to in-memory for HNSW
             self._mem.execute(f"ATTACH '{self.db_path}' AS disk (dbtype duckdb);")
             # HNSW index built in-memory at boot for fast queries
-            self._mem.execute(f"""
+            self._mem.execute("""
                 CREATE TABLE chunk_vec AS
                 SELECT id, embedding FROM disk.chunk
                 WHERE embedding IS NOT NULL;
@@ -143,7 +143,7 @@ class ChunkStore:
 
             rw.execute("SET hnsw_enable_experimental_persistence = true;")
             try:
-                rw.execute(f"""
+                rw.execute("""
                     CREATE INDEX IF NOT EXISTS chunk_embedding_hnsw
                     ON chunk USING HNSW (embedding)
                     WITH (metric='cosine', ef_construction=200, M=32);
@@ -171,12 +171,7 @@ class ChunkStore:
 
         rw = self._open_rw()
         try:
-            # Use COPY FROM for speed — write to parquet first
-            import tempfile
-            import pyarrow as pa
-            import pyarrow.parquet as pq
-
-            table = pa.Table.from_pylist([
+            rows = [
                 {
                     "id": c["id"],
                     "doc_id": c["doc_id"],
@@ -191,12 +186,8 @@ class ChunkStore:
                     "embedded_at": c.get("embedded_at"),
                 }
                 for c in chunks
-            ])
-
-            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-                pq.write_table(table, f.name)
-                rw.execute(f"COPY chunk FROM '{f.name}' (FORMAT PARQUET);")
-                Path(f.name).unlink()
+            ]
+            self._copy_rows_to_chunk_table(rw, rows)
 
             # Rebuild FTS after batch insert (FTS doesn't auto-update)
             rw.execute("""
@@ -239,6 +230,27 @@ class ChunkStore:
         finally:
             rw.close()
 
+    def _copy_rows_to_chunk_table(
+        self,
+        rw: duckdb.DuckDB,
+        rows: list[dict[str, Any]],
+    ) -> None:
+        """
+        Write rows to chunk table via Parquet COPY (shared by write_chunks and upsert).
+
+        Deduplicates structural duplication detected by codetopo.
+        """
+        import tempfile
+
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        table = pa.Table.from_pylist(rows, preserve_index=False)
+        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
+            pq.write_table(table, f.name)
+            rw.execute(f"COPY chunk FROM '{f.name}' (FORMAT PARQUET);")
+            Path(f.name).unlink()
+
     def upsert_chunk_with_embedding(
         self,
         chunk_id: str,
@@ -260,13 +272,7 @@ class ChunkStore:
         """
         rw = self._open_rw()
         try:
-            # DELETE existing if present
             rw.execute("DELETE FROM chunk WHERE id = ?", [chunk_id])
-
-            # INSERT fresh
-            import pyarrow as pa
-            import pyarrow.parquet as pq
-            import tempfile
 
             row = {
                 "id": chunk_id,
@@ -280,15 +286,9 @@ class ChunkStore:
                 "created_at": datetime.now(timezone.utc),
                 "source_mtime": source_mtime,
                 "embedded_at": datetime.now(timezone.utc),
+                "embedding": embedding,
             }
-            # Embedding as fixed-dim FLOAT list
-            row["embedding"] = embedding
-
-            table = pa.Table.from_pylist([row], preserve_index=False)
-            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-                pq.write_table(table, f.name)
-                rw.execute(f"COPY chunk FROM '{f.name}' (FORMAT PARQUET);")
-                Path(f.name).unlink()
+            self._copy_rows_to_chunk_table(rw, [row])
 
         finally:
             rw.close()

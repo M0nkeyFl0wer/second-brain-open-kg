@@ -13,8 +13,6 @@ paths and native graph algorithms, not Python loops.
 
 from typing import Any, Optional
 
-import real_ladybug as lb
-
 from second_brain.graph import GraphReader
 
 
@@ -75,14 +73,12 @@ class PathFinder:
         Returns list of {entity_id, label, entity_type, distance, edges} dicts.
         """
         if edge_types:
-            type_filter = "AND r.edge_type IN $edge_types"
             params = {"id": entity_id, "edge_types": edge_types}
         else:
-            type_filter = ""
             params = {"id": entity_id}
 
         results = self.reader.query(f"""
-            MATCH (center:entity {{id: $id}}})
+            MATCH (center:entity {{id: $id}})
             MATCH path = (center)-[*1..{hops}]-(neighbor:entity)
             WHERE center <> neighbor
             WITH center, neighbor, shortest(path) as sp

@@ -13,7 +13,7 @@ Returns:
 
 import json
 import urllib.request
-from typing import Any, Optional
+from typing import Any
 
 
 DEFAULT_MODEL = "qwen3:14b"
@@ -43,8 +43,6 @@ def extract_triplets_from_text(
     """
     if not text or len(text.strip()) < 20:
         return {"entities": [], "edges": []}
-
-    edge_types_str = "\n".join(f"  - {et}" for et in edge_types)
 
     prompt = f"""Extract triplets (subject, relationship, object) from the following text.
 

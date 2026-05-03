@@ -17,20 +17,18 @@ no audience data flows back into the KG (per kg-ingestion principle).
 
 import json
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from second_brain.chunk_store import ChunkStore
-from second_brain.graph import GraphWriter, GraphReader, PipelineError
+from second_brain.graph import GraphWriter, PipelineError
 from second_brain.ontology import (
     slugify,
     validate_edge,
-    extraction_prompt_fragment,
-    node_type_prompt_fragment,
 )
 from second_brain.extract import extract_triplets_from_text
 
