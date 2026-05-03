@@ -1,0 +1,16 @@
+[Unit]
+Description=open-second-brain health check every 15 minutes
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=/home/m0nk/Projects/open-second-brain
+ExecStart=/home/m0nk/Projects/open-second-brain/scripts/health_check.py
+StandardOutput=journal
+StandardError=journal
+
+# Exit codes: 0=healthy, 1=warning, 2=critical
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=timers.target

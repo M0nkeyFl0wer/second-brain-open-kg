@@ -1,0 +1,11 @@
+[Unit]
+Description=open-second-brain health check every 15 minutes
+Requires=open-second-brain-health.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

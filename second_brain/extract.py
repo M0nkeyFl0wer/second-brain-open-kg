@@ -1,234 +1,177 @@
 """
-Three-phase entity and relationship extraction.
-Phase 1: Deterministic (structure, regex, dates) — fast, free, always runs
-Phase 2: NLP (spaCy NER) — local, fast, catches named entities
-Phase 3: LLM (Ollama or remote) — semantic, identifies relationships and types
+Triplet extraction from text — entity-relationship-entity with evidence.
 
-Every entity validates against ONTOLOGY.md at extraction time.
-Rejected types are counted for ontology improvement feedback.
+Uses LLM (Ollama) to extract triplets from note chunks.
+Evidence is REQUIRED on every edge — verbatim quote from source text.
+
+Returns:
+    {
+        "entities": [{"label": "...", "type": "...", "meta": {...}}, ...],
+        "edges": [{"source": "...", "target": "...", "type": "...", "evidence": "...", "confidence": 0.5}, ...]
+    }
 """
-import logging
-import re
+
 import json
-import hashlib
-import time
-import spacy
-from .ontology import Ontology
-from . import config
-
-logger = logging.getLogger(__name__)
+import urllib.request
+from typing import Any, Optional
 
 
-def generate_entity_id(label: str, entity_type: str, source_url: str) -> str:
-    """Canonical ID function. ONE function, used everywhere."""
-    normalized = f"{entity_type}:{label.lower().strip()}:{source_url}"
-    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+DEFAULT_MODEL = "qwen3:14b"
+DEFAULT_HOST = "http://localhost:11434"
+TIMEOUT_SECONDS = 60
 
 
-class Extractor:
-    """Three-phase extraction pipeline."""
+def extract_triplets_from_text(
+    text: str,
+    edge_types: list[str],
+    model: str = DEFAULT_MODEL,
+    host: str = DEFAULT_HOST,
+    max_tokens: int = 2048,
+) -> dict[str, Any]:
+    """
+    Extract triplets from a text chunk using Ollama LLM.
 
-    def __init__(self, ontology: Ontology):
-        self.ontology = ontology
-        self.nlp = spacy.load("en_core_web_sm")
+    Args:
+        text: the note chunk text to analyze
+        edge_types: list of edge types to extract (from config)
+        model: Ollama model name
+        host: Ollama host URL
+        max_tokens: max tokens for LLM response
 
-    def extract_from_text(self, text: str, source_url: str = "",
-                          doc_id: str = "") -> dict:
-        """
-        Run all three extraction phases on a text.
-        Returns: {"entities": [...], "edges": [...]}
-        """
-        entities = []
-        edges = []
-        now = int(time.time())
+    Returns:
+        dict with "entities" and "edges" lists
+    """
+    if not text or len(text.strip()) < 20:
+        return {"entities": [], "edges": []}
 
-        # Phase 1: Deterministic extraction
-        p1_entities = self._phase1_deterministic(text, source_url, now)
-        entities.extend(p1_entities)
+    edge_types_str = "\n".join(f"  - {et}" for et in edge_types)
 
-        # Phase 2: spaCy NER
-        p2_entities = self._phase2_spacy(text, source_url, now)
-        entities.extend(p2_entities)
+    prompt = f"""Extract triplets (subject, relationship, object) from the following text.
 
-        # Phase 3: LLM extraction (relationships + type refinement)
-        if config.PRIVACY_MODE == "local":
-            p3 = self._phase3_llm_local(text, source_url, entities, now)
-        elif config.PRIVACY_MODE in ("hybrid", "remote"):
-            p3 = self._phase3_llm_remote(text, source_url, entities, now)
-        else:
-            p3 = {"entities": [], "edges": []}
+For each relationship found, return:
+- source entity label
+- target entity label
+- edge type (one of: {", ".join(edge_types)})
+- verbatim evidence quote from the text (min 10 characters)
+- confidence: 0.9 deterministic / 0.7 NLP / 0.5 LLM
 
-        entities.extend(p3.get("entities", []))
-        edges.extend(p3.get("edges", []))
+Entity types: concept, person, source, project, insight, question, practice, place, method, tool
 
-        # Deduplicate by ID
-        seen_ids = set()
-        unique_entities = []
-        for e in entities:
-            if e["id"] not in seen_ids:
-                seen_ids.add(e["id"])
-                unique_entities.append(e)
-
-        return {"entities": unique_entities, "edges": edges}
-
-    def _phase1_deterministic(self, text: str, source_url: str,
-                              now: int) -> list:
-        """Extract entities from structure: dates, dollar amounts."""
-        entities = []
-
-        # Dates (ISO and natural format)
-        date_pattern = r'\b(\d{4}-\d{2}-\d{2}|\w+ \d{1,2},? \d{4})\b'
-        for match in re.finditer(date_pattern, text):
-            label = match.group(0)
-            entities.append(self._make_entity(
-                label, "event", f"Date reference: {label}",
-                0.9, source_url, "deterministic", now))
-
-        return entities
-
-    def _phase2_spacy(self, text: str, source_url: str, now: int) -> list:
-        """Extract named entities using spaCy NER.
-        Maps spaCy NER labels to our PKG ontology types."""
-        doc = self.nlp(text[:100000])
-        entities = []
-
-        # Map spaCy labels → PKG ontology types
-        spacy_to_ontology = {
-            "PERSON": "person",
-            "ORG": "source",     # Organizations as knowledge sources
-            "GPE": "place",
-            "LOC": "place",
-            "FAC": "place",
-            "WORK_OF_ART": "source",  # Books, articles, etc.
-            "EVENT": "concept",  # Events as concepts in PKG
-        }
-
-        seen_labels = set()
-        for ent in doc.ents:
-            ontology_type = spacy_to_ontology.get(ent.label_)
-            if not ontology_type:
-                continue
-            if not self.ontology.validate_entity_type(ontology_type):
-                continue
-
-            label = ent.text.strip()
-            if label in seen_labels or len(label) < 2:
-                continue
-            seen_labels.add(label)
-
-            entities.append(self._make_entity(
-                label, ontology_type, "",
-                0.7, source_url, "spacy_ner", now))
-
-        return entities
-
-    def _phase3_llm_local(self, text: str, source_url: str,
-                          existing_entities: list, now: int) -> dict:
-        """LLM extraction via local Ollama model."""
-        import ollama
-
-        type_guidance = self.ontology.get_extraction_prompt_context()
-        edge_guidance = self.ontology.get_edge_prompt_context()
-        existing_labels = [e["label"] for e in existing_entities[:30]]
-
-        prompt = f"""Analyze this personal note and extract concepts, people, sources,
-insights, questions, and relationships between them. Focus on ideas and their connections.
-
-{type_guidance}
-
-{edge_guidance}
-
-Already extracted entities: {', '.join(existing_labels) if existing_labels else 'none yet'}
-
-Respond ONLY with valid JSON. No preamble, no markdown.
-Format:
+Respond ONLY with valid JSON (no markdown, no explanation):
 {{
   "entities": [
-    {{"label": "...", "type": "...", "description": "..."}}
+    {{"label": "entity name", "type": "entity_type", "meta": {{}}}}
   ],
   "edges": [
-    {{"source": "entity label", "target": "entity label", "type": "EDGE_TYPE"}}
+    {{
+      "source": "source entity label",
+      "target": "target entity label",
+      "type": "EDGE_TYPE",
+      "evidence": "exact quote from text",
+      "confidence": 0.5
+    }}
   ]
 }}
 
-Note to analyze:
-{text[:4000]}"""
+Text to analyze:
+---
+{text[:4000]}
+---
 
+JSON response:"""
+
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": 0.1,
+            "num_predict": max_tokens,
+        },
+    }
+
+    try:
+        req = urllib.request.Request(
+            f"{host}/api/generate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            response_text = result.get("response", "").strip()
+
+        # Parse JSON from response
+        return _parse_json_response(response_text)
+
+    except Exception as ex:
+        # Log and return empty on failure
+        print(f"[extract_triplets] Error: {ex}")
+        return {"entities": [], "edges": []}
+
+
+def _parse_json_response(response_text: str) -> dict[str, Any]:
+    """
+    Parse JSON from LLM response, handling trailing prose or malformed JSON.
+
+    Strategy:
+    1. Try raw JSON parse
+    2. Strip markdown code blocks if present
+    3. Find first { and last } and try again
+    4. Fall back to empty result
+    """
+    if not response_text:
+        return {"entities": [], "edges": []}
+
+    # Try direct parse
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        pass
+
+    # Strip markdown code blocks
+    cleaned = response_text.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.split("\n")
+        cleaned = "\n".join(lines[1:])  # Remove first line (```json)
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Find JSON bounds
+    first_brace = cleaned.find("{")
+    last_brace = cleaned.rfind("}")
+    if first_brace != -1 and last_brace > first_brace:
         try:
-            response = ollama.chat(
-                model=config.LOCAL_EXTRACTION_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                format="json",
-            )
-            result = json.loads(response["message"]["content"])
-        except Exception as e:
-            logger.warning("LLM extraction failed: %s", e)
-            return {"entities": [], "edges": []}
+            return json.loads(cleaned[first_brace:last_brace + 1])
+        except json.JSONDecodeError:
+            pass
 
-        # Convert LLM output to our format
-        entities = []
-        for e in result.get("entities", []):
-            etype = e.get("type", "").lower()
-            label = e.get("label", "")
-            if not label or not self.ontology.validate_entity_type(etype):
-                continue
-            entities.append(self._make_entity(
-                label, etype, e.get("description", ""),
-                0.6, source_url, f"llm_{config.LOCAL_EXTRACTION_MODEL}", now))
+    # Failed to parse
+    print(f"[extract_triplets] Failed to parse JSON response: {cleaned[:200]}...")
+    return {"entities": [], "edges": []}
 
-        edges = []
-        for e in result.get("edges", []):
-            etype = e.get("type", "").upper()
-            if not self.ontology.validate_edge_type(etype):
-                continue
-            src_label = e.get("source", "")
-            tgt_label = e.get("target", "")
-            src_id = self._find_entity_id(src_label, entities + existing_entities)
-            tgt_id = self._find_entity_id(tgt_label, entities + existing_entities)
-            if src_id and tgt_id:
-                edges.append({
-                    "source_id": src_id,
-                    "target_id": tgt_id,
-                    "edge_type": etype,
-                    "weight": 1.0,
-                    "confidence": 0.6,
-                    "source_url": source_url,
-                    "provenance": f"llm_{config.LOCAL_EXTRACTION_MODEL}",
-                    "created_at": now,
-                })
 
-        return {"entities": entities, "edges": edges}
+def extract_triplets_batch(
+    texts: list[str],
+    edge_types: list[str],
+    model: str = DEFAULT_MODEL,
+    host: str = DEFAULT_HOST,
+) -> list[dict[str, Any]]:
+    """
+    Extract triplets from multiple texts in sequence.
 
-    def _phase3_llm_remote(self, text: str, source_url: str,
-                           existing_entities: list, now: int) -> dict:
-        """LLM extraction via remote API (hybrid/remote mode)."""
-        logger.info("Remote extraction not yet configured, falling back to local")
-        return self._phase3_llm_local(text, source_url, existing_entities, now)
-
-    def _make_entity(self, label: str, entity_type: str, description: str,
-                     confidence: float, source_url: str, provenance: str,
-                     now: int) -> dict:
-        """Build a standard entity dict."""
-        return {
-            "id": generate_entity_id(label, entity_type, source_url),
-            "entity_type": entity_type,
-            "label": label,
-            "description": description,
-            "confidence": confidence,
-            "source_url": source_url,
-            "provenance": provenance,
-            "created_at": now,
-            "updated_at": now,
-        }
-
-    def _find_entity_id(self, label: str, entities: list) -> str | None:
-        """Find entity ID by label match."""
-        label_lower = label.lower().strip()
-        for e in entities:
-            if e["label"].lower().strip() == label_lower:
-                return e["id"]
-        # Fuzzy fallback: substring match
-        for e in entities:
-            if label_lower in e["label"].lower() or e["label"].lower() in label_lower:
-                return e["id"]
-        return None
+    For parallel extraction, run this function concurrently with thread pool.
+    Ollama handles concurrency via its internal thread management.
+    """
+    results = []
+    for text in texts:
+        result = extract_triplets_from_text(text, edge_types, model, host)
+        results.append(result)
+    return results
