@@ -5,16 +5,29 @@
 
 ---
 
-## Context
+## Implementation Status (2026-05-03)
 
-| Aspect | Current State | Target State |
-|--------|--------------|--------------|
-| **Substrate** | LadybugDB-only | DuckDB (chunks/embeddings) + LadybugDB (graph) via ATTACH |
-| **Core use case** | Ad-hoc queries | Triplet-first extraction + hybrid retrieval |
-| **Onboarding** | None | Interactive prompt + README guidance |
-| **Harness** | Not integrated | 7 hooks + 5 MCP tools from agentic-rag-harness |
-| **Edge detection** | External edge-finder | Integrated enrichment pass |
-| **Hardening** | Reference only | Copied to `docs/hardening.md` |
+| Component | Status | File |
+|-----------|--------|------|
+| `second_brain/ontology.py` | ✅ Done | Entity/edge types, validate_edge, slugify, extraction_prompt_fragment |
+| `second_brain/chunk_store.py` | ✅ Done | DuckDB FTS + HNSW + RRF, two-handle pattern, DELETE+INSERT for re-embed |
+| `second_brain/graph.py` | ✅ Done | LadybugDB wrapper, WAL preflight, RAM flush, per-request open/close |
+| `second_brain/extract.py` | ✅ Done | LLM triplet extraction with evidence enforcement |
+| `second_brain/path_finder.py` | ✅ Done | shortest_path, neighborhood, verify_path, detect_gaps |
+| `scripts/enrich.py` | ✅ Done | Nightly LLM pass, every 4h via systemd timer |
+| `scripts/health_check.py` | ✅ Done | Graph + chunk observability, every 15min via systemd timer |
+| `systemd/` | ✅ Done | Enrich + health timers with OOMScoreAdjust=-200 |
+| `docs/hardening.md` | ✅ Done | Copied from ~/Projects/security-hardening-2026-01-28.md |
+| `config/edge_types.json` | ✅ Done | Empty config (user fills via onboard.py) |
+| `scripts/onboard.py` | ⬜ Todo | Interactive edge-type selection |
+| `scripts/smoke_test.py` | ⬜ Todo | Pipeline smoke tests |
+| `hooks/` (harness) | ⬜ Todo | Symlink from agentic-rag-harness |
+| `.mcp/` config | ⬜ Todo | MCP server config for rag_search etc |
+| `docs/ONTOLOGY.md` | ⬜ Todo | Entity/edge type reference |
+| `docs/ACTIVE_STACK.md` | ⬜ Todo | Pipeline stages + services |
+| `tests/fixture_corpus/` | ⬜ Todo | SME ground-truth triplets |
+| `Makefile` (pre-push) | ⬜ Todo | codetopo + smoke test |
+| `README.md` (onboarding) | ⬜ Todo | Edge type examples |
 
 ---
 
