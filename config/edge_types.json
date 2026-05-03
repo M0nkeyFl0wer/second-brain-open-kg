@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "edge_types": [],
+  "embedding_model": "nomic-embed-text",
+  "embedding_dim": 768,
+  "hnsw_ef_construction": 200,
+  "hnsw_M": 32,
+  "rrf_k": 60,
+  "chunk_size_chars": 500,
+  "onboard_completed": false,
+  "vault_path": null
+}
