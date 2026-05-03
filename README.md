@@ -1,6 +1,6 @@
 # second-brain-knowledge-graph-infrastructure 
 
-<img src="static/social-card.png" alt="The Topological Second Brain: A Full-Stack AI Memory Architecture" width="100%">
+<img src="static/logo.png" alt="Second Brain Knowledge Graph" width="400">
 
 A personal knowledge graph that lives on top of your Obsidian vault. Ingest your notes, extract concepts and connections, find hidden links between ideas, and get a daily reflection on what your graph knows. Runs entirely on your machine.
 
