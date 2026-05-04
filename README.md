@@ -1,71 +1,75 @@
-# second-brain-knowledge-graph-infrastructure 
+# Personal Knowledge Graph Infrastructure
 
-<img src="static/logo.png" alt="Second Brain Knowledge Graph" width="400">
+<img src="static/logo.png" alt="Personal Knowledge Graph" width="400">
 
-A personal knowledge graph that lives on top of your Obsidian vault. Ingest your notes, extract concepts and connections, find hidden links between ideas, and get a daily reflection on what your graph knows. Runs entirely on your machine.
+A set of tools I've been using and sharing — assembled from personal experimentation and client work organizing hybrid knowledge graphs in various forms.
 
-**No cloud required. No accounts. Your thoughts stay yours.**
+It covers the full stack in one place:
 
-### Built With
+- **Ontology design** — entity types, edge types, and what to track
+- **Ingestion flows** — getting notes and documents into the graph
+- **Embeddings** — local via Ollama, or plug in Claude/OpenAI/etc.
+- **Chunking** — splitting content into meaningful units
+- **Vector search** — HNSW indexes for semantic retrieval
+- **Triplet extraction** — pulling entity-relationship-entity facts from raw text
+- **Graph enrichment** — scheduled passes that grow the graph automatically
+- **Discovery** — finding hidden connections and structural gaps
 
-[![LadybugDB](https://img.shields.io/badge/LadybugDB-0.15.3-ff6b35?style=for-the-badge)](https://github.com/LadybugDB/ladybug)
-[![NetworkX](https://img.shields.io/badge/NetworkX-3.6-2e86c1?style=for-the-badge)](https://github.com/networkx/networkx)
-[![Ollama](https://img.shields.io/badge/Ollama-local_AI-000000?style=for-the-badge)](https://github.com/ollama/ollama)
-[![spaCy](https://img.shields.io/badge/spaCy-NLP-09a3d5?style=for-the-badge)](https://github.com/explosion/spaCy)
+Everything local-first. Works with an Obsidian vault, any folder of documents, or starting from scratch.
 
-> ### Why This Exists
->
-> This project was inspired by [*An Alternative Trajectory for Generative AI*](https://arxiv.org/abs/2603.14147) (Belova, Kansal, Liang, Xiao & Jha — Princeton, 2026), which argues that the current path of scaling monolithic LLMs is physically and economically unsustainable. Their alternative: **domain-specific superintelligence** — small, specialized models grounded in knowledge graphs, ontologies, and formal logic, organized as composable "societies" rather than a single giant model.
->
-> The paper's core insight is that intelligence comes from manipulating relational symbolic structures, not just pattern-matching over massive corpora. Knowledge graphs aren't just retrieval tools — they're the **structural scaffolding** for reasoning, verification, and synthetic training data. Every fact traces back to a source. Every reasoning step is auditable. Every connection is explicit.
->
-> Reading this paper introduced me to the idea of **verification with topology** — using graph structure itself (persistent homology, community detection, betweenness centrality) to validate knowledge rather than trusting LLM confidence scores. The decentralized, modular, local-first approach resonated deeply. This project is part of a broader effort to build tools that put knowledge graph intelligence in the hands of individuals, not data centers.
->
-> *"Rather than a single generalist LLM monolith, we envision a future built on specialized small language models."* — Belova et al.
-
-## What This Does
-
-You have an Obsidian vault full of notes — reading notes, project ideas, journal entries, questions, insights. You link some of them with `[[wikilinks]]`, but most connections live only in your head.
-
-This toolkit:
-
-1. **Ingests** your Obsidian vault (markdown, wikilinks, frontmatter, tags)
-2. **Extracts** concepts, people, sources, insights, and the relationships between them
-3. **Builds** a searchable knowledge graph with semantic embeddings
-4. **Discovers** hidden connections — ideas that are semantically similar but you never linked
-5. **Reflects** daily with a markdown summary: new ideas, conflicting beliefs, knowledge gaps
+**Built with:** LadybugDB, DuckDB, Ollama, NetworkX. All open source.
 
 ---
 
-## Getting Started — 4 Commands
-
-### If you use Obsidian
+**Getting started:**
 
 ```bash
 git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
 cd second-brain-open-kg
 bash setup.sh
+```
+
+Then point it at your vault, your documents, or nothing (onboarding helps you figure out where to start).
+
+---
+
+Feedback and contributions always appreciated.
+
+## What This Does
+
+1. **Ingest** — your Obsidian vault, a folder of documents, or nothing at all
+2. **Extract** — entities and relationships from your content
+3. **Build** — a searchable graph with semantic embeddings
+4. **Discover** — hidden connections between ideas you never linked
+5. **Enrich** — automated passes that grow the graph over time
+6. **Reflect** — daily summaries of new ideas, contradictions, and gaps
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
+cd second-brain-open-kg
+bash setup.sh
+```
+
+**Then point it at your content:**
+
+```bash
+# Obsidian vault
 python scripts/ingest_obsidian.py --vault ~/your-obsidian-vault
+
+# Any folder of documents
+python scripts/ingest_folder.py --dir ~/Documents/research
+
+# Or start from scratch — onboarding helps you figure out where to begin
+python scripts/onboard.py
 ```
 
-Parses your entire vault — frontmatter, `[[wikilinks]]`, `#tags`, and body text. Notes become entities, links become edges, tags become concepts.
+Supports `.txt`, `.md`, `.pdf`, `.html`. PDFs need `pdftotext` (`sudo apt install poppler-utils` on Linux, `brew install poppler` on Mac).
 
-### If you don't use Obsidian
-
-Works with any pile of documents. Drop files in the `ingest/` folder and run:
-
-```bash
-git clone https://github.com/M0nkeyFl0wer/second-brain-open-kg.git
-cd second-brain-open-kg
-bash setup.sh
-mkdir ingest
-cp ~/Documents/research/*.pdf ~/Documents/notes/*.txt ~/saved-articles/*.html ingest/
-python scripts/ingest_folder.py
-```
-
-Supports `.txt`, `.md`, `.pdf`, `.html`. PDFs need `pdftotext` (`sudo apt install poppler-utils` on Linux, `brew install poppler` on Mac). No special formatting required — the extraction pipeline handles raw, unstructured text.
-
-### Then search it
+**Search it:**
 
 ```bash
 python scripts/search_cli.py -q "your topic" --mode hybrid
